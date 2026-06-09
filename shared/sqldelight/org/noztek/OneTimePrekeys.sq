@@ -1,0 +1,52 @@
+CREATE TABLE OneTimePrekeys (
+    device_id TEXT NOT NULL,
+    key_id INTEGER NOT NULL,
+    public_key TEXT NOT NULL,
+    private_key TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending_upload',
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY(device_id, key_id),
+    FOREIGN KEY(device_id) REFERENCES Device(device_id) ON DELETE CASCADE,
+    CONSTRAINT OneTimePrekeys_status_chk CHECK (status IN ('pending_upload', 'uploaded', 'used'))
+);
+
+insertOneTimePrekey:
+INSERT INTO OneTimePrekeys(
+    device_id,
+    key_id,
+    public_key,
+    private_key,
+    status,
+    updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?);
+
+selectPendingUploadPrekeys:
+SELECT *
+FROM OneTimePrekeys
+WHERE device_id = ? AND status = 'pending_upload'
+ORDER BY key_id ASC;
+
+selectAll:
+SELECT *
+FROM OneTimePrekeys
+WHERE device_id = ?
+ORDER BY key_id ASC;
+
+countAvailable:
+SELECT COUNT(*)
+FROM OneTimePrekeys
+WHERE device_id = ? AND status = 'uploaded';
+
+markOneTimePrekeyUploaded:
+UPDATE OneTimePrekeys
+SET status = 'uploaded', updated_at = ?
+WHERE device_id = ? AND key_id = ?;
+
+markOneTimePrekeyUsed:
+UPDATE OneTimePrekeys
+SET status = 'used', updated_at = ?
+WHERE device_id = ? AND key_id = ?;
+
+deleteUsedOneTimePrekeys:
+DELETE FROM OneTimePrekeys WHERE device_id = ? AND status = 'used';

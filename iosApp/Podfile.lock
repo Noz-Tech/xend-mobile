@@ -1,0 +1,22 @@
+PODS:
+  - LibSignalClient (0.86.5)
+
+DEPENDENCIES:
+  - LibSignalClient (from `https://github.com/signalapp/libsignal.git`, tag `v0.86.5`)
+
+EXTERNAL SOURCES:
+  LibSignalClient:
+    :git: https://github.com/signalapp/libsignal.git
+    :tag: v0.86.5
+
+CHECKOUT OPTIONS:
+  LibSignalClient:
+    :git: https://github.com/signalapp/libsignal.git
+    :tag: v0.86.5
+
+SPEC CHECKSUMS:
+  LibSignalClient: 4f8311199068018bd43c90cd81a15cec66498007
+
+PODFILE CHECKSUM: 3eaa81b90b1cebad115ec14ce81819e86fd5bd81
+
+COCOAPODS: 1.16.2

@@ -1,0 +1,30 @@
+CREATE TABLE KyberPrekeys (
+    device_id TEXT NOT NULL,
+    key_id INTEGER NOT NULL,
+    public_key TEXT NOT NULL,
+    private_key TEXT NOT NULL,
+    signature TEXT NOT NULL,
+    record TEXT,
+    uploaded_at INTEGER,
+    PRIMARY KEY(device_id, key_id),
+    FOREIGN KEY(device_id) REFERENCES Device(device_id) ON DELETE CASCADE
+);
+
+upsertKyberPrekey:
+INSERT OR REPLACE INTO KyberPrekeys(
+    device_id,
+    key_id,
+    public_key,
+    private_key,
+    signature,
+    record,
+    uploaded_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+selectLatestByDevice:
+SELECT *
+FROM KyberPrekeys
+WHERE device_id = ?
+ORDER BY key_id DESC
+LIMIT 1;

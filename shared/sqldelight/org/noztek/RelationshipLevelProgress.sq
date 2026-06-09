@@ -1,0 +1,32 @@
+CREATE TABLE RelationshipLevelProgress (
+    relationship_space_id TEXT NOT NULL,
+    level INTEGER NOT NULL,
+    required_points INTEGER NOT NULL,
+    current_points INTEGER NOT NULL DEFAULT 0,
+    unlocked_at INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (relationship_space_id, level)
+);
+
+upsertRelationshipLevelProgress:
+INSERT OR REPLACE INTO RelationshipLevelProgress(
+    relationship_space_id,
+    level,
+    required_points,
+    current_points,
+    unlocked_at,
+    created_at,
+    updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+selectLevelProgressBySpace:
+SELECT * FROM RelationshipLevelProgress
+WHERE relationship_space_id = ?
+ORDER BY level ASC;
+
+selectCurrentLevelProgress:
+SELECT * FROM RelationshipLevelProgress
+WHERE relationship_space_id = ? AND level = ?
+LIMIT 1;

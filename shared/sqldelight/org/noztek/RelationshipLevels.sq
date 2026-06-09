@@ -1,0 +1,19 @@
+CREATE TABLE RelationshipLevels (
+    level INTEGER NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT
+);
+
+upsertRelationshipLevel:
+INSERT OR REPLACE INTO RelationshipLevels(
+    level,
+    name,
+    description
+)
+VALUES (?, ?, ?);
+
+selectAllRelationshipLevels:
+SELECT * FROM RelationshipLevels ORDER BY level ASC;
+
+selectRelationshipLevelById:
+SELECT * FROM RelationshipLevels WHERE level = ?;

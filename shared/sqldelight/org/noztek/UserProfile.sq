@@ -1,0 +1,29 @@
+CREATE TABLE UserProfile (
+    user_id TEXT NOT NULL PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    avatar_url TEXT,
+    identifier TEXT NOT NULL,
+    email_verified_at INTEGER,
+    updated_at INTEGER NOT NULL,
+    last_synced_at INTEGER NOT NULL
+);
+
+upsertUserProfile:
+INSERT OR REPLACE INTO UserProfile(
+    user_id,
+    display_name,
+    email,
+    avatar_url,
+    identifier,
+    email_verified_at,
+    updated_at,
+    last_synced_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+selectUserProfile:
+SELECT * FROM UserProfile WHERE user_id = ?;
+
+deleteUserProfile:
+DELETE FROM UserProfile WHERE user_id = ?;

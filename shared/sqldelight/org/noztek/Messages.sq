@@ -1,0 +1,127 @@
+CREATE TABLE Messages (
+    message_id TEXT NOT NULL PRIMARY KEY,
+    client_temp_id TEXT,
+    conversation_id TEXT NOT NULL,
+    sender_user_id TEXT NOT NULL,
+    message_type TEXT NOT NULL,
+    ciphertext TEXT NOT NULL,
+    reply_to_message_id TEXT,
+    sent_at INTEGER,
+    server_received_at INTEGER,
+    sync_state TEXT NOT NULL DEFAULT 'pending',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY(conversation_id) REFERENCES Conversations(conversation_id) ON DELETE CASCADE,
+    CONSTRAINT Messages_type_chk CHECK (message_type IN ('text', 'image', 'video', 'audio', 'file', 'system')),
+    CONSTRAINT Messages_sync_state_chk CHECK (sync_state IN ('pending', 'sent', 'synced', 'failed'))
+);
+
+insertPendingMessage:
+INSERT INTO Messages(
+    message_id,
+    client_temp_id,
+    conversation_id,
+    sender_user_id,
+    message_type,
+    ciphertext,
+    reply_to_message_id,
+    sent_at,
+    server_received_at,
+    sync_state,
+    created_at,
+    updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+upsertReceivedMessage:
+INSERT OR REPLACE INTO Messages(
+    message_id,
+    client_temp_id,
+    conversation_id,
+    sender_user_id,
+    message_type,
+    ciphertext,
+    reply_to_message_id,
+    sent_at,
+    server_received_at,
+    sync_state,
+    created_at,
+    updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+markMessageSent:
+UPDATE Messages
+SET sent_at = ?, sync_state = 'sent', updated_at = ?
+WHERE message_id = ?;
+
+markMessageSynced:
+UPDATE Messages
+SET server_received_at = ?, sync_state = 'synced', updated_at = ?
+WHERE message_id = ?;
+
+reconcileSentMessageIdentity:
+UPDATE Messages
+SET message_id = ?,
+    server_received_at = ?,
+    sync_state = 'synced',
+    updated_at = ?
+WHERE client_temp_id = ?;
+
+relinkReplyTargets:
+UPDATE Messages
+SET reply_to_message_id = ?,
+    updated_at = ?
+WHERE reply_to_message_id = ?;
+
+markMessageFailed:
+UPDATE Messages
+SET sync_state = 'failed', updated_at = ?
+WHERE message_id = ?;
+
+markMessagePending:
+UPDATE Messages
+SET sync_state = 'pending', updated_at = ?
+WHERE message_id = ?;
+
+selectMessagesByConversation:
+SELECT *
+FROM Messages
+WHERE conversation_id = ?
+ORDER BY created_at ASC;
+
+selectPendingOrFailedMessages:
+SELECT *
+FROM Messages
+WHERE sync_state IN ('pending', 'failed')
+ORDER BY created_at ASC;
+
+selectLatestServerReceivedAt:
+SELECT MAX(server_received_at) AS latest_server_received_at
+FROM Messages;
+
+selectMessageById:
+SELECT *
+FROM Messages
+WHERE message_id = ?
+LIMIT 1;
+
+selectIncomingMessageIdsByConversation:
+SELECT message_id
+FROM Messages
+WHERE conversation_id = ?
+  AND sender_user_id <> ?
+ORDER BY created_at ASC;
+
+countUnreadIncomingByConversation:
+SELECT COUNT(*) AS unread_count
+FROM Messages m
+WHERE m.conversation_id = ?
+  AND m.sender_user_id <> ?
+  AND NOT EXISTS (
+      SELECT 1
+      FROM MessageReceipts mr
+      WHERE mr.message_id = m.message_id
+        AND mr.user_id = ?
+        AND mr.status = 'read'
+  );

@@ -1,0 +1,63 @@
+CREATE TABLE SignalSessions (
+    user_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    protocol_address_name TEXT NOT NULL,
+    protocol_device_slot INTEGER NOT NULL,
+    registration_id INTEGER NOT NULL,
+    remote_identity_fingerprint TEXT NOT NULL,
+    session_state TEXT NOT NULL,
+    reset_required INTEGER NOT NULL DEFAULT 0,
+    stale_reason TEXT,
+    signed_prekey_id INTEGER NOT NULL,
+    signed_prekey_public TEXT NOT NULL,
+    signed_prekey_signature TEXT NOT NULL,
+    one_time_prekey_id INTEGER,
+    one_time_prekey_public TEXT,
+    session_record TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY(user_id, device_id),
+    CONSTRAINT SignalSessions_state_chk CHECK (session_state IN ('bootstrap_ready', 'active', 'stale', 'failed', 'identity_changed'))
+);
+
+upsertSignalSession:
+INSERT OR REPLACE INTO SignalSessions(
+    user_id,
+    device_id,
+    protocol_address_name,
+    protocol_device_slot,
+    registration_id,
+    remote_identity_fingerprint,
+    session_state,
+    reset_required,
+    stale_reason,
+    signed_prekey_id,
+    signed_prekey_public,
+    signed_prekey_signature,
+    one_time_prekey_id,
+    one_time_prekey_public,
+    session_record,
+    created_at,
+    updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectAll:
+SELECT *
+FROM SignalSessions
+ORDER BY updated_at DESC;
+
+selectSessionByUserAndDevice:
+SELECT *
+FROM SignalSessions
+WHERE user_id = ? AND device_id = ?
+LIMIT 1;
+
+markSessionResetRequired:
+UPDATE SignalSessions
+SET
+    session_state = ?,
+    reset_required = 1,
+    stale_reason = ?,
+    updated_at = ?
+WHERE user_id = ? AND device_id = ?;

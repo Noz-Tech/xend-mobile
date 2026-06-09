@@ -1,0 +1,32 @@
+CREATE TABLE RemoteIdentities (
+    user_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    identity_key_public TEXT NOT NULL,
+    identity_fingerprint TEXT NOT NULL,
+    trust_level TEXT NOT NULL DEFAULT 'trusted',
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY(user_id, device_id),
+    CONSTRAINT RemoteIdentities_trust_level_chk CHECK (trust_level IN ('trusted', 'blocked', 'identity_changed'))
+);
+
+upsertRemoteIdentity:
+INSERT OR REPLACE INTO RemoteIdentities(
+    user_id,
+    device_id,
+    identity_key_public,
+    identity_fingerprint,
+    trust_level,
+    updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?);
+
+selectRemoteIdentity:
+SELECT *
+FROM RemoteIdentities
+WHERE user_id = ? AND device_id = ?
+LIMIT 1;
+
+markRemoteIdentityChanged:
+UPDATE RemoteIdentities
+SET trust_level = 'identity_changed', updated_at = ?
+WHERE user_id = ? AND device_id = ?;

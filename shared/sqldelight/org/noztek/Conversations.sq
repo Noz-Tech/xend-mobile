@@ -1,0 +1,26 @@
+  CREATE TABLE Conversations (
+    conversation_id TEXT NOT NULL PRIMARY KEY,
+    relationship_space_id TEXT NOT NULL UNIQUE,
+    created_by_user_id TEXT NOT NULL,
+    archived_at INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY(relationship_space_id) REFERENCES RelationshipSpaces(relationship_space_id) ON DELETE CASCADE
+);
+
+upsertConversation:
+INSERT OR REPLACE INTO Conversations(
+    conversation_id,
+    relationship_space_id,
+    created_by_user_id,
+    archived_at,
+    created_at,
+    updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?);
+
+selectConversationById:
+SELECT * FROM Conversations WHERE conversation_id = ?;
+
+selectConversationBySpaceId:
+SELECT * FROM Conversations WHERE relationship_space_id = ?;

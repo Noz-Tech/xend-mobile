@@ -1,0 +1,23 @@
+CREATE TABLE MessageReactions (
+    message_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    emoji TEXT NOT NULL,
+    removed_at INTEGER,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY(message_id, user_id, emoji),
+    FOREIGN KEY(message_id) REFERENCES Messages(message_id) ON DELETE CASCADE
+);
+
+upsertMessageReaction:
+INSERT OR REPLACE INTO MessageReactions(message_id, user_id, emoji, removed_at, updated_at)
+VALUES (?, ?, ?, ?, ?);
+
+selectReactionsByMessageIds:
+SELECT *
+FROM MessageReactions
+WHERE message_id IN ?;
+
+clearRemovedReactionsByMessageIds:
+DELETE FROM MessageReactions
+WHERE message_id IN ?
+  AND removed_at IS NOT NULL;

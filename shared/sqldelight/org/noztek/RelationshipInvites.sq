@@ -1,0 +1,48 @@
+CREATE TABLE RelationshipInvites (
+    invite_id TEXT NOT NULL PRIMARY KEY,
+    relationship_space_id TEXT,
+    inviter_user_id TEXT NOT NULL,
+    invitee_user_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    note TEXT,
+    expires_at INTEGER,
+    responded_at INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    sync_state TEXT NOT NULL DEFAULT 'synced',
+    CONSTRAINT RelationshipInvites_status_chk CHECK (status IN ('pending', 'accepted', 'declined', 'cancelled', 'expired')),
+    CONSTRAINT RelationshipInvites_sync_state_chk CHECK (sync_state IN ('pending', 'synced', 'failed'))
+);
+
+upsertRelationshipInvite:
+INSERT OR REPLACE INTO RelationshipInvites(
+    invite_id,
+    relationship_space_id,
+    inviter_user_id,
+    invitee_user_id,
+    status,
+    note,
+    expires_at,
+    responded_at,
+    created_at,
+    updated_at,
+    sync_state
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectInviteInboxForUser:
+SELECT *
+FROM RelationshipInvites
+WHERE invitee_user_id = ?
+ORDER BY created_at DESC;
+
+selectInviteOutboxForUser:
+SELECT *
+FROM RelationshipInvites
+WHERE inviter_user_id = ?
+ORDER BY created_at DESC;
+
+updateInviteStatus:
+UPDATE RelationshipInvites
+SET status = ?, responded_at = ?, updated_at = ?, sync_state = ?
+WHERE invite_id = ?;

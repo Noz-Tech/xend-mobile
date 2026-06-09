@@ -1,0 +1,21 @@
+CREATE TABLE MessageReceipts (
+    message_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY(message_id, user_id),
+    FOREIGN KEY(message_id) REFERENCES Messages(message_id) ON DELETE CASCADE,
+    CONSTRAINT MessageReceipts_status_chk CHECK (status IN ('sent', 'delivered', 'read', 'failed'))
+);
+
+upsertMessageReceipt:
+INSERT OR REPLACE INTO MessageReceipts(message_id, user_id, status, updated_at)
+VALUES (?, ?, ?, ?);
+
+selectReceiptsForMessage:
+SELECT * FROM MessageReceipts WHERE message_id = ?;
+
+selectReceiptsForMessageIds:
+SELECT *
+FROM MessageReceipts
+WHERE message_id IN ?;

@@ -1,0 +1,47 @@
+CREATE TABLE RelationshipSpaces (
+    relationship_space_id TEXT NOT NULL PRIMARY KEY,
+    name TEXT,
+    created_by_user_id TEXT NOT NULL,
+    current_level INTEGER NOT NULL DEFAULT 1,
+    current_level_name TEXT NOT NULL DEFAULT 'Tease',
+    is_default INTEGER NOT NULL DEFAULT 0,
+    access_hint TEXT,
+    access_configured INTEGER NOT NULL DEFAULT 0,
+    archived_at INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+upsertRelationshipSpace:
+INSERT OR REPLACE INTO RelationshipSpaces(
+    relationship_space_id,
+    name,
+    created_by_user_id,
+    current_level,
+    current_level_name,
+    is_default,
+    access_hint,
+    access_configured,
+    archived_at,
+    created_at,
+    updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectRelationshipSpaceById:
+SELECT * FROM RelationshipSpaces WHERE relationship_space_id = ?;
+
+selectAllRelationshipSpaces:
+SELECT * FROM RelationshipSpaces ORDER BY created_at ASC;
+
+selectDefaultRelationshipSpace:
+SELECT *
+FROM RelationshipSpaces
+WHERE is_default = 1
+LIMIT 1;
+
+selectHiddenRelationshipSpaces:
+SELECT *
+FROM RelationshipSpaces
+WHERE is_default = 0
+ORDER BY created_at ASC;
