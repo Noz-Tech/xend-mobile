@@ -25,14 +25,19 @@ fun AppButton(
     containerColor: Color = MaterialTheme.colorScheme.primary,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
 ) {
+    val disabledContainerColor = containerColor.copy(alpha = 0.42f)
+    val disabledContentColor = contentColor.copy(alpha = 0.82f)
+
     Button(
         onClick = onClick,
-        modifier = modifier.height(56.dp),
+        modifier = modifier.height(50.dp),
         enabled = enabled,
-        shape = RoundedCornerShape(999.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor,
+            disabledContainerColor = disabledContainerColor,
+            disabledContentColor = disabledContentColor,
         ),
     ) {
         if (content != null) {
@@ -41,7 +46,7 @@ fun AppButton(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (isLoading) {
                     CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = contentColor,
                         strokeWidth = 2.dp,
                     )
                 } else {

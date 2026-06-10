@@ -1,6 +1,7 @@
 package com.noztek.xend.feature.auth.presentation.viewmodel
 
 import com.noztek.xend.core.presentation.defaultViewModelScope
+import com.noztek.xend.core.utils.capitalizeWords
 import com.noztek.xend.currentDeviceName
 import com.noztek.xend.feature.auth.domain.model.LoginParams
 import com.noztek.xend.feature.auth.domain.usecase.CompleteLoginSessionUseCase
@@ -45,7 +46,7 @@ class AuthViewModel(
     }
 
     fun onRegisterDisplayNameChanged(value: String) {
-        _state.update { it.copy(registerDisplayName = value, message = null) }
+        _state.update { it.copy(registerDisplayName = value.capitalizeWords(), message = null) }
     }
 
     fun onRegisterEmailChanged(value: String) {
