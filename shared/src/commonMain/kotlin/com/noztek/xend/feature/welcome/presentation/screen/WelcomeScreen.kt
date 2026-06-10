@@ -1,22 +1,25 @@
 package com.noztek.xend.feature.welcome.presentation.screen
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,13 +28,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -40,7 +42,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,19 +55,26 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowRight
+import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.Heart
 import com.composables.icons.heroicons.outline.LockClosed
+import com.composables.icons.heroicons.outline.ShieldCheck
 import com.composables.icons.heroicons.outline.Sparkles
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import xend.shared.generated.resources.Res
 import xend.shared.generated.resources.couple_1
@@ -71,6 +83,7 @@ import xend.shared.generated.resources.orbit_1
 import xend.shared.generated.resources.orbit_2
 import xend.shared.generated.resources.orbit_3
 import kotlin.math.PI
+import kotlin.math.roundToInt
 
 private data class OnboardingPage(
     val title: String,
@@ -100,8 +113,8 @@ fun WelcomeScreen(
     val pages = remember {
         listOf(
             OnboardingPage(
-                title = "Your private space for two.",
-                highlightedTitlePart = "space for two",
+                title = "Your private space\nfor two",
+                highlightedTitlePart = "for two",
                 body = "A secure place to message, play, share moments, and stay close with the one person who matters most.",
                 action = "Continue",
                 accent = Color(0xFF2E3A59),
@@ -109,7 +122,7 @@ fun WelcomeScreen(
                 icon = Heroicons.Outline.Heart,
             ),
             OnboardingPage(
-                title = "Only you two belong here.",
+                title = "Only you two\nbelong here",
                 highlightedTitlePart = "belong here",
                 body = "Xend is built for private conversations, honest moments, silly talks, and memories you don't want mixed with the noise of everywhere else.",
                 action = "Continue",
@@ -118,7 +131,7 @@ fun WelcomeScreen(
                 icon = Heroicons.Outline.LockClosed,
             ),
             OnboardingPage(
-                title = "Create your space together.",
+                title = "Create your\nspace together",
                 highlightedTitlePart = "space together",
                 body = "Set up your private space, invite your partner, and start building a place that belongs only to both of you.",
                 action = "Create Our Space",
@@ -259,6 +272,30 @@ private fun IntroWelcomeContent(
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+        Row(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .background(
+                    color = primaryColor.copy(alpha = 0.10f),
+                    shape = RoundedCornerShape(8.dp),
+                )
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Heroicons.Outline.ShieldCheck,
+                contentDescription = null,
+                tint = primaryColor.copy(alpha = 0.82f),
+                modifier = Modifier.size(12.dp),
+            )
+            Text(
+                text = "Zero-Knowledge Storage",
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = primaryColor.copy(alpha = 0.92f),
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Welcome to Xend",
             style = MaterialTheme.typography.displaySmall.copy(
@@ -269,9 +306,9 @@ private fun IntroWelcomeContent(
             color = headlineColor,
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         Text(
-            text = "Before anything else, this is your place to slow down, connect, and make something that belongs only to both of you.",
+            text = "Start a private place where your messages, memories, and playful moments can grow together.",
             style = MaterialTheme.typography.bodyLarge.copy(
                 lineHeight = 24.sp,
                 fontWeight = FontWeight.Normal,
@@ -280,20 +317,168 @@ private fun IntroWelcomeContent(
             color = bodyColor,
         )
         Spacer(modifier = Modifier.weight(1f))
-        Button(
-            onClick = onStart,
+        SwipeToStartButton(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(18.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = primaryColor,
-                contentColor = Color.White,
-            ),
+                .height(60.dp),
+            text = "Get Started",
+            containerColor = primaryColor,
+            onSwiped = onStart,
+        )
+    }
+}
+
+@Composable
+private fun SwipeToStartButton(
+    modifier: Modifier = Modifier,
+    text: String,
+    containerColor: Color,
+    onSwiped: () -> Unit,
+) {
+    val thumbSize = 50.dp
+    val outerPadding = 5.dp
+    val textStartInset = 14.dp
+    val density = LocalDensity.current
+    val scope = rememberCoroutineScope()
+    var buttonWidthPx by remember { mutableFloatStateOf(0f) }
+    var textWidthPx by remember { mutableFloatStateOf(0f) }
+    var isCompleted by remember { mutableStateOf(false) }
+    val dragOffset = remember { Animatable(0f) }
+    val thumbSizePx = with(density) { thumbSize.toPx() }
+    val outerPaddingPx = with(density) { outerPadding.toPx() }
+    val textStartInsetPx = with(density) { textStartInset.toPx() }
+    val maxDragPx = remember(buttonWidthPx, thumbSizePx, outerPaddingPx) {
+        (buttonWidthPx - thumbSizePx - (outerPaddingPx * 2f)).coerceAtLeast(0f)
+    }
+    val swipeProgress = if (maxDragPx > 0f) {
+        (dragOffset.value / maxDragPx).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    val innerWidthPx = (buttonWidthPx - (outerPaddingPx * 2f)).coerceAtLeast(0f)
+    val textEndTranslation = if (innerWidthPx > 0f && textWidthPx > 0f) {
+        -((innerWidthPx - textWidthPx) / 2f - textStartInsetPx)
+    } else {
+        0f
+    }
+    val textTranslationX = lerpValue(
+        start = 0f,
+        end = textEndTranslation,
+        fraction = swipeProgress,
+    )
+    val chevronTransition = rememberInfiniteTransition(label = "swipeStartChevron")
+    val chevronWaveProgress by chevronTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1150, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "swipeStartChevronWave",
+    )
+
+    Box(
+        modifier = modifier
+            .onSizeChanged { buttonWidthPx = it.width.toFloat() }
+            .clip(RoundedCornerShape(18.dp))
+            .background(containerColor)
+            .padding(horizontal = outerPadding),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Text(
+            text = text,
+            color = Color.White,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier
+                .align(Alignment.Center)
+                .onSizeChanged { textWidthPx = it.width.toFloat() }
+                .graphicsLayer { translationX = textTranslationX },
+        )
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy((-5).dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "Get Started",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            repeat(3) { index ->
+                val phase = positiveModulo(
+                    value = chevronWaveProgress - (index * 0.16f),
+                    mod = 1f,
+                )
+                val emphasis = 1f - kotlin.math.abs((phase * 2f) - 1f)
+                val chevronAlpha = lerpValue(
+                    start = 0.24f,
+                    end = 1f,
+                    fraction = emphasis,
+                )
+                Icon(
+                    imageVector = Heroicons.Outline.ChevronRight,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = chevronAlpha),
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .offset {
+                    IntOffset(
+                        x = dragOffset.value.roundToInt(),
+                        y = 0,
+                    )
+                }
+                .size(thumbSize)
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color.White)
+                .pointerInput(maxDragPx, isCompleted) {
+                    detectHorizontalDragGestures(
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            if (!isCompleted) {
+                                val newValue = (dragOffset.value + dragAmount).coerceIn(0f, maxDragPx)
+                                scope.launch {
+                                    dragOffset.snapTo(newValue)
+                                }
+                            }
+                        },
+                        onDragEnd = {
+                            val shouldComplete = dragOffset.value >= maxDragPx * 0.80f
+                            if (shouldComplete && !isCompleted) {
+                                isCompleted = true
+                                scope.launch {
+                                    dragOffset.animateTo(
+                                        targetValue = maxDragPx,
+                                        animationSpec = tween(
+                                            durationMillis = 180,
+                                            easing = FastOutSlowInEasing,
+                                        ),
+                                    )
+                                    onSwiped()
+                                }
+                            } else {
+                                scope.launch {
+                                    dragOffset.animateTo(
+                                        targetValue = 0f,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessMedium,
+                                        ),
+                                    )
+                                }
+                            }
+                        },
+                    )
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Heroicons.Outline.ArrowRight,
+                contentDescription = "Swipe to start",
+                tint = containerColor,
+                modifier = Modifier.size(22.dp),
             )
         }
     }
@@ -421,26 +606,24 @@ private fun lerpValue(
     fraction: Float,
 ): Float = start + ((end - start) * fraction.coerceIn(0f, 1f))
 
+private fun positiveModulo(
+    value: Float,
+    mod: Float,
+): Float = ((value % mod) + mod) % mod
+
 @Composable
 private fun IllustrationPlaceholder(
     accent: Color,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
 ) {
+    val couplePainter = painterResource(Res.drawable.couple_1)
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(290.dp)
-            .clip(RoundedCornerShape(34.dp))
-            .background(Color.White),
+            .height(290.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(modifier = Modifier.matchParentSize()) {
-            drawRoundRect(
-                color = Color(0xFFF8FAFD),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(34.dp.toPx()),
-            )
-        }
-
         Box(
             modifier = Modifier
                 .size(380.dp)
@@ -457,12 +640,13 @@ private fun IllustrationPlaceholder(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            FloatingStoryToken(
-                modifier = Modifier,
-                size = 88.dp,
-                background = Color.White.copy(alpha = 0.92f),
-                tint = Color(0xFF111111),
-                icon = icon,
+            Image(
+                painter = couplePainter,
+                contentDescription = "Couple illustration",
+                modifier = Modifier
+                    .fillMaxWidth(0.78f)
+                    .height(240.dp),
+                contentScale = ContentScale.Fit,
             )
         }
     }
