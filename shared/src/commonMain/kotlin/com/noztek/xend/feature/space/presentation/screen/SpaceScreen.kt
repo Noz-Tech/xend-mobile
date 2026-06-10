@@ -24,6 +24,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -36,12 +37,15 @@ import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ChatBubbleOvalLeftEllipsis
 import com.composables.icons.heroicons.outline.Sparkles
 import com.composables.icons.heroicons.outline.UserPlus
+import com.noztek.xend.core.ui.components.RootTopBar
 import com.noztek.xend.feature.space.domain.model.RelationshipSpaceCardModel
 import com.noztek.xend.feature.space.presentation.viewmodel.SpaceViewModel
 import org.koin.compose.koinInject
 
 @Composable
 fun SpaceScreen(
+    onOpenInvites: () -> Unit = {},
+    onOpenHiddenSpaces: () -> Unit = {},
     onInviteClick: () -> Unit = {},
     onMessageClick: (String) -> Unit = {},
 ) {
@@ -49,74 +53,85 @@ fun SpaceScreen(
     val state by vm.state.collectAsState()
     val defaultSpace = state.defaultSpace
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+    Scaffold(
+        topBar = {
+            RootTopBar(
+                onInvitesClick = onOpenInvites,
+                onHiddenSpacesClick = onOpenHiddenSpaces,
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background,
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            item {
-                AssistChip(
-                    onClick = {},
-                    shape = RoundedCornerShape(20.dp),
-                    label = {
-                        Text(
-                            if (defaultSpace != null) "Current Space: ${defaultSpace.name}" else "No space yet",
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Heroicons.Outline.Sparkles,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    ),
-                )
-            }
-
-            if (defaultSpace == null) {
-                item {
-                    val message = when {
-                        state.isLoading -> "Loading spaces..."
-                        !state.message.isNullOrBlank() -> state.message!!
-                        else -> "Send an invite to get started."
-                    }
-                    Box(
-                        modifier = Modifier.fillParentMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                }
-            } else {
-                item {
-                    DefaultSpaceCard(
-                        item = defaultSpace,
-                        onMessageClick = { onMessageClick(defaultSpace.conversationId) },
-                    )
-                }
-            }
-        }
-
         Box(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = 16.dp),
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(it),
         ) {
-            SpaceActions(onInviteClick = onInviteClick)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                item {
+                    AssistChip(
+                        onClick = {},
+                        shape = RoundedCornerShape(20.dp),
+                        label = {
+                            Text(
+                                if (defaultSpace != null) "Current Space: ${defaultSpace.name}" else "No space yet",
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Heroicons.Outline.Sparkles,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ),
+                    )
+                }
+
+                if (defaultSpace == null) {
+                    item {
+                        val message = when {
+                            state.isLoading -> "Loading spaces..."
+                            !state.message.isNullOrBlank() -> state.message!!
+                            else -> "Send an invite to get started."
+                        }
+                        Box(
+                            modifier = Modifier.fillParentMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                } else {
+                    item {
+                        DefaultSpaceCard(
+                            item = defaultSpace,
+                            onMessageClick = { onMessageClick(defaultSpace.conversationId) },
+                        )
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = 16.dp),
+            ) {
+                SpaceActions(onInviteClick = onInviteClick)
+            }
         }
     }
 }

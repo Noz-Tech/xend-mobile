@@ -1,7 +1,7 @@
 package com.noztek.xend.core.ui.theme
 import androidx.compose.ui.graphics.Color
 
-val primaryLight = Color(0xFFB9003A)
+val primaryLight = Color(0xFFFF335F)
 val onPrimaryLight = Color(0xFFFFFFFF)
 val primaryContainerLight = Color(0xFFE3184E)
 val onPrimaryContainerLight = Color(0xFFFFFBFF)

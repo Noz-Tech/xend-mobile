@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,12 +25,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import com.noztek.xend.core.ui.components.BackTopBar
+import com.noztek.xend.core.ui.components.RootTopBar
 import com.noztek.xend.feature.auth.presentation.screen.LoginScreen
 import com.noztek.xend.feature.auth.presentation.screen.RegisterScreen
 import com.noztek.xend.feature.auth.presentation.screen.VerifyEmailScreen
+import com.noztek.xend.feature.invites.presentation.screen.InvitePartnerScreen
+import com.noztek.xend.feature.invites.presentation.screen.InvitesScreen
 import com.noztek.xend.feature.message.presentation.screen.MessageScreen
 import com.noztek.xend.feature.auth.presentation.viewmodel.AuthViewModel
 import com.noztek.xend.feature.space.presentation.screen.SpaceScreen
+import com.noztek.xend.feature.space.presentation.screen.HiddenSpacesScreen
 import com.noztek.xend.feature.welcome.presentation.screen.OfflineScreen
 import com.noztek.xend.feature.welcome.presentation.screen.WelcomeScreen
 import org.koin.compose.koinInject
@@ -40,6 +46,9 @@ private object AppRoutes {
     const val Welcome = "welcome"
     const val AuthGraph = "auth"
     const val Main = "main"
+    const val InvitePartner = "invite-partner"
+    const val Invites = "invites"
+    const val HiddenSpaces = "hidden-spaces"
     const val Message = "message"
 }
 
@@ -121,12 +130,56 @@ fun AppNavHost(
 
         composable(AppRoutes.Main) {
             SpaceScreen(
+                onOpenInvites = { navController.navigate(AppRoutes.Invites) },
+                onOpenHiddenSpaces = { navController.navigate(AppRoutes.HiddenSpaces) },
                 onMessageClick = { conversationId ->
                     if (conversationId.isBlank()) return@SpaceScreen
                     activeConversationId = conversationId
                     navController.navigate(AppRoutes.Message)
                 },
+                onInviteClick = { navController.navigate(AppRoutes.InvitePartner) },
             )
+        }
+
+        composable(AppRoutes.InvitePartner) {
+            AppRouteScaffold(
+                topBar = {
+                    BackTopBar(
+                        title = "Invite Partner",
+                        onBackClick = navController::popBackStack,
+                    )
+                },
+            ) {
+                InvitePartnerScreen()
+            }
+        }
+
+        composable(AppRoutes.Invites) {
+            AppRouteScaffold(
+                topBar = {
+                    RootTopBar(
+                        onInvitesClick = {},
+                        onHiddenSpacesClick = { navController.navigate(AppRoutes.HiddenSpaces) },
+                    )
+                },
+            ) {
+                InvitesScreen()
+            }
+        }
+
+        composable(AppRoutes.HiddenSpaces) {
+            AppRouteScaffold(
+                topBar = {
+                    BackTopBar(
+                        title = "Hidden Spaces",
+                        onBackClick = navController::popBackStack,
+                    )
+                },
+            ) {
+                HiddenSpacesScreen(
+                    onUnlocked = { navController.popBackStack() },
+                )
+            }
         }
 
         composable(AppRoutes.Message) {
@@ -200,6 +253,26 @@ private fun NavGraphBuilder.authNavGraph(
             }
 
             LoginScreen(viewModel = authViewModel)
+        }
+    }
+}
+
+@Composable
+private fun AppRouteScaffold(
+    topBar: @Composable () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = topBar,
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(innerPadding),
+        ) {
+            content()
         }
     }
 }

@@ -31,6 +31,7 @@ import com.composables.icons.heroicons.solid.UserCircle
 fun RootTopBar(
     onAvatarClick: () -> Unit = {},
     onSearchClick: () -> Unit = {},
+    onInvitesClick: () -> Unit = {},
     onHiddenSpacesClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
 ) {
@@ -76,6 +77,13 @@ fun RootTopBar(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     tonalElevation = 6.dp,
                 ) {
+                    DropdownMenuItem(
+                        text = { Text("Invites") },
+                        onClick = {
+                            menuExpanded = false
+                            onInvitesClick()
+                        },
+                    )
                     DropdownMenuItem(
                         text = { Text("Hidden spaces") },
                         onClick = {
