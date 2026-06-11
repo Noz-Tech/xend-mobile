@@ -239,6 +239,10 @@ class AuthViewModel(
         _state.update { it.copy(emailVerified = false, verificationCode = "") }
     }
 
+    fun consumeMessage() {
+        _state.update { it.copy(message = null) }
+    }
+
     private fun runAction(successMessage: String, action: suspend () -> Unit) {
         scope.launch {
             _state.update { it.copy(isLoading = true, message = null) }

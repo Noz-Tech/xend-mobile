@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -94,7 +95,7 @@ private data class OnboardingPage(
     val action: String,
     val accent: Color,
     val accentSoft: Color,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val icon: ImageVector,
 )
 
 private data class OrbitSpec(
@@ -117,8 +118,8 @@ fun WelcomeScreen(
     val pages = remember {
         listOf(
             OnboardingPage(
-                title = "Your private space\nfor two",
-                highlightedTitlePart = "for two",
+                title = "Your private \nspace for two",
+                highlightedTitlePart = "space for two",
                 body = "A secure place to message, play, share moments, and stay close with the one person who matters most.",
                 action = "Continue",
                 accent = Color(0xFF2E3A59),
@@ -163,7 +164,7 @@ fun WelcomeScreen(
             WelcomeHeader(
                 isLastPage = !hasStartedStory || currentPage == pages.lastIndex,
                 showSkip = hasStartedStory,
-                onSkip = { onGetStarted() }
+                onSkip = onGetStarted,
             )
             Spacer(modifier = Modifier.height(18.dp))
             if (!hasStartedStory) {
@@ -538,14 +539,14 @@ private fun OrbitingIntroIllustration(
             ),
             OrbitSpec(
                 painter = orbit2,
-                size = 66.dp,
+                size = 54.dp,
                 radiusX = 148.dp,
                 radiusY = 98.dp,
                 phaseOffset = 106f,
             ),
             OrbitSpec(
                 painter = orbit3,
-                size = 50.dp,
+                size = 54.dp,
                 radiusX = 118.dp,
                 radiusY = 76.dp,
                 phaseOffset = 222f,
@@ -758,8 +759,8 @@ private fun StoryPageContent(
             Text(
                 text = page.body,
                 style = MaterialTheme.typography.bodyLarge.copy(
-                    lineHeight = 31.sp,
-                    fontWeight = FontWeight.Medium,
+                    lineHeight = 24.sp,
+                    fontWeight = FontWeight.Normal,
                 ),
                 color = bodyColor,
             )

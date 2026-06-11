@@ -1,5 +1,4 @@
 package com.noztek.xend.app
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -252,7 +251,12 @@ private fun NavGraphBuilder.authNavGraph(
                 }
             }
 
-            LoginScreen(viewModel = authViewModel)
+            LoginScreen(
+                onCreateSpaceClick = {
+                    navController.popBackStack(AuthRoutes.Register, inclusive = false)
+                },
+                viewModel = authViewModel,
+            )
         }
     }
 }
