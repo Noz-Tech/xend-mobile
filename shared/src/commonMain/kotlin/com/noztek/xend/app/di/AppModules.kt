@@ -8,6 +8,7 @@ fun appModules(appConfig: AppConfig) = listOf(
     authModule,
     deviceModule,
     inviteModule,
+    spaceSetupModule,
     spaceModule,
     messageModule,
     presentationModule,

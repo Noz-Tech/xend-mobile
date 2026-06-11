@@ -47,6 +47,7 @@ kotlin {
             implementation(libs.androidx.sqlite)
             implementation(libs.android.sqlcipher)
             implementation(libs.libsignal.client)
+            implementation(libs.zxing.core)
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.messaging)
             implementation(libs.compose.uiTextGoogleFonts)

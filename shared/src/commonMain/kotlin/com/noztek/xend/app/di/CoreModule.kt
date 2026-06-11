@@ -33,6 +33,7 @@ fun coreModule(appConfig: AppConfig) = module {
             ensureLocalSignalBootstrap = get(),
             getCurrentSession = get(),
             getPendingAuthFlow = get(),
+            resolveAuthenticatedEntryDestination = get(),
         )
     }
 }

@@ -35,6 +35,7 @@ import com.noztek.xend.feature.message.presentation.screen.MessageScreen
 import com.noztek.xend.feature.auth.presentation.viewmodel.AuthViewModel
 import com.noztek.xend.feature.space.presentation.screen.SpaceScreen
 import com.noztek.xend.feature.space.presentation.screen.HiddenSpacesScreen
+import com.noztek.xend.feature.spacesetup.presentation.screen.SpaceSetupScreen
 import com.noztek.xend.feature.welcome.presentation.screen.OfflineScreen
 import com.noztek.xend.feature.welcome.presentation.screen.WelcomeScreen
 import org.koin.compose.koinInject
@@ -44,6 +45,7 @@ private object AppRoutes {
     const val Offline = "offline"
     const val Welcome = "welcome"
     const val AuthGraph = "auth"
+    const val SpaceSetup = "space-setup"
     const val Main = "main"
     const val InvitePartner = "invite-partner"
     const val Invites = "invites"
@@ -111,6 +113,12 @@ fun AppNavHost(
                         }
                     }
 
+                    StartupDestination.SPACE_SETUP -> {
+                        navController.navigate(AppRoutes.SpaceSetup) {
+                            popUpTo(AppRoutes.Startup) { inclusive = true }
+                        }
+                    }
+
                     StartupDestination.OFFLINE -> {
                         navController.navigate(AppRoutes.Offline) {
                             popUpTo(AppRoutes.Startup) { inclusive = true }
@@ -145,13 +153,31 @@ fun AppNavHost(
             )
         }
 
+        composable(AppRoutes.SpaceSetup) {
+            val setupViewModel = koinInject<com.noztek.xend.feature.spacesetup.presentation.viewmodel.SpaceSetupViewModel>()
+            val setupState by setupViewModel.state.collectAsState()
+
+            LaunchedEffect(setupState.shouldEnterMain) {
+                if (!setupState.shouldEnterMain) return@LaunchedEffect
+                setupViewModel.consumeEnterMain()
+                navController.navigate(AppRoutes.Main) {
+                    popUpTo(AppRoutes.SpaceSetup) { inclusive = true }
+                }
+            }
+
+            SpaceSetupScreen(
+                onOpenInvites = { navController.navigate(AppRoutes.Invites) },
+                viewModel = setupViewModel,
+            )
+        }
+
         authNavGraph(
             navController = navController,
             authViewModel = authViewModel,
             onAuthenticated = {
                 startupViewModel.checkApiHealth()
-                navController.navigate(AppRoutes.Main) {
-                    popUpTo(AppRoutes.Welcome) { inclusive = true }
+                navController.navigate(AppRoutes.Startup) {
+                    popUpTo(AppRoutes.AuthGraph) { inclusive = true }
                 }
             },
         )

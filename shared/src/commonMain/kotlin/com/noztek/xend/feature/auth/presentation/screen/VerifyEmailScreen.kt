@@ -48,6 +48,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import xend.shared.generated.resources.Res
 import xend.shared.generated.resources.logo
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun VerifyEmailScreen(
@@ -237,6 +238,7 @@ fun VerifyEmailScreen(
                 }
             },
         )
+
     }
 }
 
@@ -253,7 +255,7 @@ private fun rememberVerificationResendRemainingSeconds(
             val nextRemaining = (availableAtEpochSeconds - currentEpochSeconds()).coerceAtLeast(0L)
             remainingSeconds = nextRemaining
             if (nextRemaining <= 0L) break
-            delay(1_000L)
+            delay(1_000L.milliseconds)
         }
     }
 

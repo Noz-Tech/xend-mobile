@@ -5,6 +5,8 @@ import com.noztek.xend.feature.auth.domain.model.PendingAuthFlowStep
 import com.noztek.xend.feature.auth.domain.usecase.GetCurrentSessionUseCase
 import com.noztek.xend.feature.auth.domain.usecase.GetPendingAuthFlowUseCase
 import com.noztek.xend.feature.device.domain.usecase.EnsureLocalSignalBootstrapUseCase
+import com.noztek.xend.feature.spacesetup.domain.model.AuthenticatedEntryDestination
+import com.noztek.xend.feature.spacesetup.domain.usecase.ResolveAuthenticatedEntryDestinationUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,6 +21,7 @@ class StartupViewModel(
     private val ensureLocalSignalBootstrap: EnsureLocalSignalBootstrapUseCase,
     private val getCurrentSession: GetCurrentSessionUseCase,
     private val getPendingAuthFlow: GetPendingAuthFlowUseCase,
+    private val resolveAuthenticatedEntryDestination: ResolveAuthenticatedEntryDestinationUseCase,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -37,9 +40,15 @@ class StartupViewModel(
             val pendingFlow = if (session == null) getPendingAuthFlow() else null
             val hasSession = session != null
             val online = healthChecker.isOnline()
+            val authenticatedEntryDestination = if (hasSession && online) {
+                resolveAuthenticatedEntryDestination()
+            } else {
+                null
+            }
             val destination = when {
                 !online -> StartupDestination.OFFLINE
-                hasSession -> StartupDestination.MAIN
+                authenticatedEntryDestination == AuthenticatedEntryDestination.MAIN -> StartupDestination.MAIN
+                authenticatedEntryDestination == AuthenticatedEntryDestination.SPACE_SETUP -> StartupDestination.SPACE_SETUP
                 pendingFlow?.step == PendingAuthFlowStep.VERIFY_EMAIL && pendingFlow.email.isNotBlank() -> StartupDestination.VERIFY_EMAIL
                 else -> StartupDestination.WELCOME
             }
