@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -22,10 +23,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -53,6 +57,11 @@ fun LoginScreen(
     val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val submitLogin = {
+        keyboardController?.hide()
+        focusManager.clearFocus(force = true)
+        viewModel.submitLogin()
+    }
     val snackbarHostState = rememberAuthSnackbarHostState(
         message = state.message,
         onMessageConsumed = viewModel::consumeMessage,
@@ -96,7 +105,12 @@ fun LoginScreen(
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.None,
                         keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next,
                     ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) },
+                    ),
+                    contentType = ContentType.Username + ContentType.EmailAddress,
                 )
 
                 AppTextField(
@@ -108,7 +122,12 @@ fun LoginScreen(
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.None,
                         keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done,
                     ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { submitLogin() },
+                    ),
+                    contentType = ContentType.Password,
                 )
             }
 
@@ -125,11 +144,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(18.dp))
             AppButton(
                 text = "Continue",
-                onClick = {
-                    keyboardController?.hide()
-                    focusManager.clearFocus(force = true)
-                    viewModel.submitLogin()
-                },
+                onClick = submitLogin,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = state.isLoginSubmissionEnabled,
                 isLoading = state.isLoading,

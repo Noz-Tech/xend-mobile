@@ -77,6 +77,7 @@ import com.composables.icons.heroicons.outline.Heart
 import com.composables.icons.heroicons.outline.LockClosed
 import com.composables.icons.heroicons.outline.ShieldCheck
 import com.composables.icons.heroicons.outline.Sparkles
+import com.noztek.xend.core.ui.haptics.rememberSwipeCompletionHaptic
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import xend.shared.generated.resources.Res
@@ -358,6 +359,7 @@ private fun SwipeToStartButton(
     val outerPadding = 5.dp
     val textStartInset = 14.dp
     val density = LocalDensity.current
+    val performSwipeCompletionHaptic = rememberSwipeCompletionHaptic()
     val scope = rememberCoroutineScope()
     var buttonWidthPx by remember { mutableFloatStateOf(0f) }
     var textWidthPx by remember { mutableFloatStateOf(0f) }
@@ -482,6 +484,7 @@ private fun SwipeToStartButton(
                                             easing = FastOutSlowInEasing,
                                         ),
                                     )
+                                    performSwipeCompletionHaptic()
                                     onSwiped()
                                 }
                             } else {

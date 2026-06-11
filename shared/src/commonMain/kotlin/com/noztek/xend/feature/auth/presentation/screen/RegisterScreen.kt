@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -22,10 +23,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -52,6 +56,11 @@ fun RegisterScreen(
     val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val submitRegistration = {
+        keyboardController?.hide()
+        focusManager.clearFocus(force = true)
+        viewModel.submitRegistration()
+    }
     val snackbarHostState = rememberAuthSnackbarHostState(
         message = state.message,
         onMessageConsumed = viewModel::consumeMessage,
@@ -93,7 +102,14 @@ fun RegisterScreen(
                     onValueChange = viewModel::onRegisterDisplayNameChanged,
                     label = "Name",
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Next,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) },
+                    ),
+                    contentType = ContentType.PersonFullName,
                 )
 
                 AppTextField(
@@ -104,7 +120,12 @@ fun RegisterScreen(
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.None,
                         keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next,
                     ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) },
+                    ),
+                    contentType = ContentType.NewUsername + ContentType.EmailAddress,
                 )
 
                 AppTextField(
@@ -116,18 +137,19 @@ fun RegisterScreen(
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.None,
                         keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done,
                     ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { submitRegistration() },
+                    ),
+                    contentType = ContentType.NewPassword,
                 )
             }
 
             Spacer(modifier = Modifier.height(18.dp))
             AppButton(
                 text = "Continue",
-                onClick = {
-                    keyboardController?.hide()
-                    focusManager.clearFocus(force = true)
-                    viewModel.submitRegistration()
-                },
+                onClick = submitRegistration,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = state.isRegisterSubmissionEnabled,
                 isLoading = state.isLoading,
