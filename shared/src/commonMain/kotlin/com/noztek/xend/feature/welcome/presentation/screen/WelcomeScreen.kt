@@ -59,6 +59,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -69,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowRight
+import com.composables.icons.heroicons.outline.ArrowTopRightOnSquare
 import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.Heart
 import com.composables.icons.heroicons.outline.LockClosed
@@ -102,6 +104,8 @@ private data class OrbitSpec(
     val radiusY: Dp,
     val phaseOffset: Float,
 )
+
+private const val STORAGE_INFO_URL = "https://en.wikipedia.org/wiki/End-to-end_encryption"
 
 @Composable
 fun WelcomeScreen(
@@ -259,6 +263,8 @@ private fun IntroWelcomeContent(
     primaryColor: Color,
     onStart: () -> Unit,
 ) {
+    val uriHandler = LocalUriHandler.current
+
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -272,28 +278,40 @@ private fun IntroWelcomeContent(
         }
 
         Spacer(modifier = Modifier.height(32.dp))
-        Row(
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .background(
-                    color = primaryColor.copy(alpha = 0.10f),
-                    shape = RoundedCornerShape(8.dp),
-                )
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(
-                imageVector = Heroicons.Outline.ShieldCheck,
-                contentDescription = null,
-                tint = primaryColor.copy(alpha = 0.82f),
-                modifier = Modifier.size(12.dp),
-            )
-            Text(
-                text = "Zero-Knowledge Storage",
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = primaryColor.copy(alpha = 0.92f),
-            )
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { uriHandler.openUri(STORAGE_INFO_URL) }
+                    .background(
+                        color = primaryColor.copy(alpha = 0.10f),
+                        shape = RoundedCornerShape(8.dp),
+                    )
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Heroicons.Outline.ShieldCheck,
+                    contentDescription = null,
+                    tint = primaryColor.copy(alpha = 0.82f),
+                    modifier = Modifier.size(12.dp),
+                )
+                Text(
+                    text = "Zero-Knowledge Storage",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = primaryColor.copy(alpha = 0.92f),
+                )
+                Icon(
+                    imageVector = Heroicons.Outline.ArrowTopRightOnSquare,
+                    contentDescription = "Open link",
+                    tint = primaryColor.copy(alpha = 0.76f),
+                    modifier = Modifier.size(12.dp),
+                )
+            }
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
