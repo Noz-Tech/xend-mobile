@@ -22,6 +22,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -49,6 +51,8 @@ fun LoginScreen(
     viewModel: AuthViewModel = koinInject(),
 ) {
     val state by viewModel.state.collectAsState()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val snackbarHostState = rememberAuthSnackbarHostState(
         message = state.message,
         onMessageConsumed = viewModel::consumeMessage,
@@ -121,7 +125,11 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(18.dp))
             AppButton(
                 text = "Continue",
-                onClick = viewModel::submitLogin,
+                onClick = {
+                    keyboardController?.hide()
+                    focusManager.clearFocus(force = true)
+                    viewModel.submitLogin()
+                },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = state.isLoginSubmissionEnabled,
                 isLoading = state.isLoading,
