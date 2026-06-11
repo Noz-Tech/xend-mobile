@@ -384,6 +384,12 @@ private fun SwipeToStartButton(
         end = textEndTranslation,
         fraction = swipeProgress,
     )
+    val chevronExitProgress = ((swipeProgress - 0.8f) / 0.2f).coerceIn(0f, 1f)
+    val chevronTranslationX = lerpValue(
+        start = 0f,
+        end = with(density) { (-34).dp.toPx() },
+        fraction = chevronExitProgress,
+    )
     val chevronTransition = rememberInfiniteTransition(label = "swipeStartChevron")
     val chevronWaveProgress by chevronTransition.animateFloat(
         initialValue = 0f,
@@ -416,7 +422,8 @@ private fun SwipeToStartButton(
         Row(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .padding(end = 14.dp),
+                .padding(end = 14.dp)
+                .graphicsLayer { translationX = chevronTranslationX },
             horizontalArrangement = Arrangement.spacedBy((-5).dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
