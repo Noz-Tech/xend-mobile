@@ -14,12 +14,16 @@ class GetPendingAuthFlowUseCase(
 class SavePendingEmailVerificationUseCase(
     private val repository: PendingAuthFlowRepository,
 ) {
-    suspend operator fun invoke(email: String) {
+    suspend operator fun invoke(
+        email: String,
+        resendAvailableAtEpochSeconds: Long,
+    ) {
         repository.savePendingAuthFlow(
             PendingAuthFlowModel(
                 step = PendingAuthFlowStep.VERIFY_EMAIL,
                 email = email.trim().lowercase(),
                 createdAtEpochSeconds = currentEpochSeconds(),
+                resendAvailableAtEpochSeconds = resendAvailableAtEpochSeconds,
             ),
         )
     }

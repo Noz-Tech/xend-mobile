@@ -13,4 +13,5 @@ data class StartupUiState(
     val hasSession: Boolean = false,
     val destination: StartupDestination? = null,
     val pendingVerificationEmail: String? = null,
+    val pendingVerificationResendAvailableAtEpochSeconds: Long = 0,
 )

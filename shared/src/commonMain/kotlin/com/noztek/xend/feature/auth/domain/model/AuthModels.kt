@@ -30,6 +30,7 @@ data class PendingAuthFlowModel(
     val step: PendingAuthFlowStep,
     val email: String,
     val createdAtEpochSeconds: Long,
+    val resendAvailableAtEpochSeconds: Long,
 )
 
 data class AuthSessionModel(

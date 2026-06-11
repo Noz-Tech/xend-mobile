@@ -2,6 +2,7 @@ package com.noztek.xend.feature.auth.presentation.viewmodel
 
 import com.noztek.xend.core.presentation.defaultViewModelScope
 import com.noztek.xend.core.utils.capitalizeWords
+import com.noztek.xend.core.time.currentEpochSeconds
 import com.noztek.xend.currentDeviceName
 import com.noztek.xend.feature.auth.domain.model.LoginParams
 import com.noztek.xend.feature.auth.domain.usecase.CompleteLoginSessionUseCase
@@ -22,6 +23,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private const val VERIFICATION_RESEND_COOLDOWN_SECONDS = 25L
 
 class AuthViewModel(
     private val registerWithEmailAction: RegisterWithEmailUseCase,
@@ -61,12 +64,22 @@ class AuthViewModel(
         _state.update { it.copy(registerPassword = value, message = null) }
     }
 
-    fun prepareVerification(email: String) {
+    fun prepareVerification(
+        email: String,
+        resendAvailableAtEpochSeconds: Long = 0,
+        startResendCooldown: Boolean = true,
+    ) {
         val normalizedEmail = email.trim()
+        val resolvedResendAvailableAtEpochSeconds = when {
+            startResendCooldown -> currentEpochSeconds() + VERIFICATION_RESEND_COOLDOWN_SECONDS
+            resendAvailableAtEpochSeconds > 0L -> resendAvailableAtEpochSeconds
+            else -> _state.value.verificationResendAvailableAtEpochSeconds
+        }
         _state.update {
             it.copy(
                 verificationEmail = normalizedEmail,
                 verificationCode = "",
+                verificationResendAvailableAtEpochSeconds = resolvedResendAvailableAtEpochSeconds,
                 loginEmail = normalizedEmail.ifBlank { it.loginEmail },
                 message = null,
             )
@@ -155,13 +168,17 @@ class AuthViewModel(
         }
 
         runAction("Registration completed. Verify your email.") {
+            val resendAvailableAtEpochSeconds = currentEpochSeconds() + VERIFICATION_RESEND_COOLDOWN_SECONDS
             val registeredEmail = registerWithEmailAction(
                 displayName = displayName,
                 email = email,
                 password = password,
                 deviceName = currentDeviceName(),
             )
-            savePendingEmailVerification(registeredEmail)
+            savePendingEmailVerification(
+                email = registeredEmail,
+                resendAvailableAtEpochSeconds = resendAvailableAtEpochSeconds,
+            )
             _state.update {
                 it.copy(
                     registerDisplayName = displayName,
@@ -169,6 +186,7 @@ class AuthViewModel(
                     registerPassword = "",
                     loginEmail = registeredEmail,
                     verificationEmail = registeredEmail,
+                    verificationResendAvailableAtEpochSeconds = resendAvailableAtEpochSeconds,
                     registeredEmail = registeredEmail,
                 )
             }
@@ -189,7 +207,49 @@ class AuthViewModel(
         }
     }
 
-    fun resendCode(email: String) = runAction("Verification code sent.") { resendVerificationCodeAction(email) }
+    fun resendCode(email: String) {
+        val normalizedEmail = email.trim()
+        if (normalizedEmail.isBlank()) {
+            _state.update { it.copy(message = "Email is required") }
+            return
+        }
+
+        val remainingSeconds =
+            (_state.value.verificationResendAvailableAtEpochSeconds - currentEpochSeconds()).coerceAtLeast(0L)
+        if (remainingSeconds > 0L) {
+            _state.update {
+                it.copy(message = "Please wait ${remainingSeconds}s before requesting another code.")
+            }
+            return
+        }
+
+        scope.launch {
+            _state.update { it.copy(isLoading = true, message = null) }
+            runCatching { resendVerificationCodeAction(normalizedEmail) }
+                .onSuccess {
+                    val resendAvailableAtEpochSeconds =
+                        currentEpochSeconds() + VERIFICATION_RESEND_COOLDOWN_SECONDS
+                    savePendingEmailVerification(
+                        email = normalizedEmail,
+                        resendAvailableAtEpochSeconds = resendAvailableAtEpochSeconds,
+                    )
+                    val session = getCurrentSession()
+                    val profile = getCurrentProfile()
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            session = session ?: it.session,
+                            profile = profile ?: it.profile,
+                            message = "Verification code sent.",
+                            verificationResendAvailableAtEpochSeconds = resendAvailableAtEpochSeconds,
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    _state.update { it.copy(isLoading = false, message = e.message ?: "Request failed") }
+                }
+        }
+    }
 
     fun changeVerificationEmail() {
         val email = _state.value.verificationEmail.trim()
@@ -200,6 +260,7 @@ class AuthViewModel(
                     registerEmail = email,
                     verificationEmail = "",
                     verificationCode = "",
+                    verificationResendAvailableAtEpochSeconds = 0,
                     registeredEmail = null,
                     emailVerified = false,
                     isLoading = false,

@@ -72,7 +72,11 @@ fun AppNavHost(
         composable(AppRoutes.Startup) {
             val state by startupViewModel.state.collectAsState()
 
-            LaunchedEffect(state.destination, state.pendingVerificationEmail) {
+            LaunchedEffect(
+                state.destination,
+                state.pendingVerificationEmail,
+                state.pendingVerificationResendAvailableAtEpochSeconds,
+            ) {
                 when (state.destination) {
                     StartupDestination.MAIN -> {
                         navController.navigate(
@@ -95,7 +99,12 @@ fun AppNavHost(
                                 popUpTo(AppRoutes.Startup) { inclusive = true }
                             }
                         } else {
-                            authViewModel.prepareVerification(email)
+                            authViewModel.prepareVerification(
+                                email = email,
+                                resendAvailableAtEpochSeconds =
+                                    state.pendingVerificationResendAvailableAtEpochSeconds,
+                                startResendCooldown = false,
+                            )
                             navController.navigate(AuthRoutes.VerifyEmail) {
                                 popUpTo(AppRoutes.Startup) { inclusive = true }
                             }

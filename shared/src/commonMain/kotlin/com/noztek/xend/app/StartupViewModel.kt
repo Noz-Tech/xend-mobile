@@ -50,6 +50,8 @@ class StartupViewModel(
                     hasSession = hasSession,
                     destination = destination,
                     pendingVerificationEmail = pendingFlow?.email,
+                    pendingVerificationResendAvailableAtEpochSeconds =
+                        pendingFlow?.resendAvailableAtEpochSeconds ?: 0,
                 )
             }
         }

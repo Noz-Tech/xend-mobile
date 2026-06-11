@@ -14,6 +14,7 @@ data class AuthUiState(
     val loginPassword: String = "",
     val verificationEmail: String = "",
     val verificationCode: String = "",
+    val verificationResendAvailableAtEpochSeconds: Long = 0,
     val message: String? = null,
     val registeredEmail: String? = null,
     val emailVerified: Boolean = false,
