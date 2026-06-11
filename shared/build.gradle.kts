@@ -71,6 +71,7 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.russhwolf.settings.noArg)
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines)
             implementation(libs.heroicons.outline)

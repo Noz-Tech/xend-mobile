@@ -6,6 +6,7 @@ import com.noztek.xend.currentDeviceName
 import com.noztek.xend.feature.auth.domain.model.LoginParams
 import com.noztek.xend.feature.auth.domain.usecase.CompleteLoginSessionUseCase
 import com.noztek.xend.feature.auth.domain.usecase.CompleteLogoutSessionUseCase
+import com.noztek.xend.feature.auth.domain.usecase.ClearPendingAuthFlowUseCase
 import com.noztek.xend.feature.auth.domain.usecase.GetCurrentSessionUseCase
 import com.noztek.xend.feature.auth.domain.usecase.GetCurrentUserProfileUseCase
 import com.noztek.xend.feature.auth.domain.usecase.LoginUseCase
@@ -13,6 +14,7 @@ import com.noztek.xend.feature.auth.domain.usecase.LogoutUseCase
 import com.noztek.xend.feature.auth.domain.usecase.RefreshSessionUseCase
 import com.noztek.xend.feature.auth.domain.usecase.RegisterWithEmailUseCase
 import com.noztek.xend.feature.auth.domain.usecase.ResendVerificationCodeUseCase
+import com.noztek.xend.feature.auth.domain.usecase.SavePendingEmailVerificationUseCase
 import com.noztek.xend.feature.auth.domain.usecase.VerifyEmailCodeUseCase
 import com.noztek.xend.feature.auth.presentation.state.AuthUiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +27,8 @@ class AuthViewModel(
     private val registerWithEmailAction: RegisterWithEmailUseCase,
     private val verifyEmailCodeAction: VerifyEmailCodeUseCase,
     private val resendVerificationCodeAction: ResendVerificationCodeUseCase,
+    private val savePendingEmailVerification: SavePendingEmailVerificationUseCase,
+    private val clearPendingAuthFlow: ClearPendingAuthFlowUseCase,
     private val login: LoginUseCase,
     private val refreshSession: RefreshSessionUseCase,
     private val completeLoginSession: CompleteLoginSessionUseCase,
@@ -157,6 +161,7 @@ class AuthViewModel(
                 password = password,
                 deviceName = currentDeviceName(),
             )
+            savePendingEmailVerification(registeredEmail)
             _state.update {
                 it.copy(
                     registerDisplayName = displayName,
@@ -175,6 +180,7 @@ class AuthViewModel(
             _state.update { it.copy(isLoading = true, message = null, emailVerified = false) }
             runCatching { verifyEmailCodeAction(email, token) }
                 .onSuccess {
+                    clearPendingAuthFlow()
                     _state.update { it.copy(isLoading = false, message = "Email verified.", emailVerified = true) }
                 }
                 .onFailure { e ->
@@ -184,6 +190,24 @@ class AuthViewModel(
     }
 
     fun resendCode(email: String) = runAction("Verification code sent.") { resendVerificationCodeAction(email) }
+
+    fun changeVerificationEmail() {
+        val email = _state.value.verificationEmail.trim()
+        scope.launch {
+            clearPendingAuthFlow()
+            _state.update {
+                it.copy(
+                    registerEmail = email,
+                    verificationEmail = "",
+                    verificationCode = "",
+                    registeredEmail = null,
+                    emailVerified = false,
+                    isLoading = false,
+                    message = null,
+                )
+            }
+        }
+    }
 
     fun loginWithEmail(email: String, password: String) {
         scope.launch {
@@ -197,6 +221,7 @@ class AuthViewModel(
                     ),
                 )
             }.onSuccess { session ->
+                clearPendingAuthFlow()
                 completeLoginSession(session)
                 val profile = getCurrentProfile()
                 _state.update {
@@ -222,6 +247,7 @@ class AuthViewModel(
             _state.update { it.copy(isLoading = true, message = null) }
             runCatching { logout.invoke() }
                 .onSuccess {
+                    clearPendingAuthFlow()
                     completeLogoutSession()
                     _state.value = AuthUiState(message = "Logged out")
                 }

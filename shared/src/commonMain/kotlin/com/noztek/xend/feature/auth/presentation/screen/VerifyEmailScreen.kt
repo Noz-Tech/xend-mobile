@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.noztek.xend.core.ui.components.AppButton
 import com.noztek.xend.core.ui.components.AppTextField
@@ -41,6 +43,7 @@ import xend.shared.generated.resources.logo
 
 @Composable
 fun VerifyEmailScreen(
+    onChangeEmailClick: () -> Unit = {},
     viewModel: AuthViewModel = koinInject(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -86,13 +89,36 @@ fun VerifyEmailScreen(
             )
             if (state.verificationEmail.isNotBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = state.verificationEmail,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = state.verificationEmail,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                    TextButton(
+                        onClick = {
+                            keyboardController?.hide()
+                            focusManager.clearFocus(force = true)
+                            viewModel.changeVerificationEmail()
+                            onChangeEmailClick()
+                        },
+                        enabled = !state.isLoading,
+                    ) {
+                        Text(
+                            text = "Change Email",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                textDecoration = TextDecoration.Underline
+                            ),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = if (state.isLoading) 0.45f else 0.82f),
+                        )
+                    }
+                }
             }
-            Spacer(modifier = Modifier.height(28.dp))
 
             AppTextField(
                 value = state.verificationCode,
@@ -119,7 +145,7 @@ fun VerifyEmailScreen(
                 isLoading = state.isLoading,
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             TextButton(
                 onClick = {
                     keyboardController?.hide()

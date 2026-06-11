@@ -72,17 +72,37 @@ fun AppNavHost(
         composable(AppRoutes.Startup) {
             val state by startupViewModel.state.collectAsState()
 
-            LaunchedEffect(state.isApiOnline, state.hasSession) {
-                when (state.isApiOnline) {
-                    true -> {
+            LaunchedEffect(state.destination, state.pendingVerificationEmail) {
+                when (state.destination) {
+                    StartupDestination.MAIN -> {
                         navController.navigate(
-                            if (state.hasSession) AppRoutes.Main else AppRoutes.Welcome,
+                            AppRoutes.Main,
                         ) {
                             popUpTo(AppRoutes.Startup) { inclusive = true }
                         }
                     }
 
-                    false -> {
+                    StartupDestination.WELCOME -> {
+                        navController.navigate(AppRoutes.Welcome) {
+                            popUpTo(AppRoutes.Startup) { inclusive = true }
+                        }
+                    }
+
+                    StartupDestination.VERIFY_EMAIL -> {
+                        val email = state.pendingVerificationEmail?.trim().orEmpty()
+                        if (email.isBlank()) {
+                            navController.navigate(AppRoutes.Welcome) {
+                                popUpTo(AppRoutes.Startup) { inclusive = true }
+                            }
+                        } else {
+                            authViewModel.prepareVerification(email)
+                            navController.navigate(AuthRoutes.VerifyEmail) {
+                                popUpTo(AppRoutes.Startup) { inclusive = true }
+                            }
+                        }
+                    }
+
+                    StartupDestination.OFFLINE -> {
                         navController.navigate(AppRoutes.Offline) {
                             popUpTo(AppRoutes.Startup) { inclusive = true }
                         }
@@ -239,7 +259,15 @@ private fun NavGraphBuilder.authNavGraph(
                 }
             }
 
-            VerifyEmailScreen(viewModel = authViewModel)
+            VerifyEmailScreen(
+                onChangeEmailClick = {
+                    navController.navigate(AuthRoutes.Register) {
+                        popUpTo(AuthRoutes.VerifyEmail) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                viewModel = authViewModel,
+            )
         }
 
         composable(AuthRoutes.Login) {
@@ -253,7 +281,13 @@ private fun NavGraphBuilder.authNavGraph(
 
             LoginScreen(
                 onCreateSpaceClick = {
-                    navController.popBackStack(AuthRoutes.Register, inclusive = false)
+                    val popped = navController.popBackStack(AuthRoutes.Register, inclusive = false)
+                    if (!popped) {
+                        navController.navigate(AuthRoutes.Register) {
+                            popUpTo(AuthRoutes.Login) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
                 },
                 viewModel = authViewModel,
             )

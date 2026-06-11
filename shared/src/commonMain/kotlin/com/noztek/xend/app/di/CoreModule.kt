@@ -5,6 +5,7 @@ import com.noztek.xend.app.StartupViewModel
 import com.noztek.xend.core.network.ApiHealthChecker
 import com.noztek.xend.core.network.createHttpClient
 import com.noztek.xend.feature.device.domain.usecase.EnsureLocalSignalBootstrapUseCase
+import com.russhwolf.settings.Settings
 import io.ktor.client.HttpClient
 import kotlinx.serialization.json.Json
 import org.koin.core.qualifier.named
@@ -23,7 +24,15 @@ fun coreModule(appConfig: AppConfig) = module {
     }
 
     single<HttpClient> { createHttpClient(get()) }
+    single<Settings> { Settings() }
     single { ApiHealthChecker(client = get(), baseUrl = get(named("api_base_url"))) }
     single { EnsureLocalSignalBootstrapUseCase(deviceDao = get(), signalBootstrapProvider = get()) }
-    single { StartupViewModel(healthChecker = get(), ensureLocalSignalBootstrap = get(), getCurrentSession = get()) }
+    single {
+        StartupViewModel(
+            healthChecker = get(),
+            ensureLocalSignalBootstrap = get(),
+            getCurrentSession = get(),
+            getPendingAuthFlow = get(),
+        )
+    }
 }

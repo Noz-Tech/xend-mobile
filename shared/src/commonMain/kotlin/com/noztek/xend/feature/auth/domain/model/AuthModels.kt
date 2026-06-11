@@ -22,6 +22,16 @@ data class LoginParams(
     val deviceName: String,
 )
 
+enum class PendingAuthFlowStep {
+    VERIFY_EMAIL,
+}
+
+data class PendingAuthFlowModel(
+    val step: PendingAuthFlowStep,
+    val email: String,
+    val createdAtEpochSeconds: Long,
+)
+
 data class AuthSessionModel(
     val id: Long,
     val userId: String,
