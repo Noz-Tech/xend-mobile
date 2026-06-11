@@ -245,6 +245,15 @@ private fun NavGraphBuilder.authNavGraph(
                 navController.navigate(AuthRoutes.VerifyEmail)
             }
 
+            LaunchedEffect(state.existingAccountEmail) {
+                val email = state.existingAccountEmail ?: return@LaunchedEffect
+                authViewModel.consumeExistingAccountEmail()
+                authViewModel.prepareLogin(email)
+                navController.navigate(AuthRoutes.Login) {
+                    launchSingleTop = true
+                }
+            }
+
             RegisterScreen(
                 onLoginClick = { email ->
                     authViewModel.prepareLogin(email)

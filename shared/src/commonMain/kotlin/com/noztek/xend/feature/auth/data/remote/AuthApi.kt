@@ -1,6 +1,7 @@
 package com.noztek.xend.feature.auth.data.remote
 
 import com.noztek.xend.core.utils.errorMessageParser
+import com.noztek.xend.feature.auth.data.remote.model.ApiErrorDto
 import com.noztek.xend.feature.auth.data.remote.model.AuthResponseDto
 import com.noztek.xend.feature.auth.data.remote.model.LoginRequestDto
 import com.noztek.xend.feature.auth.data.remote.model.RefreshRequestDto
@@ -23,11 +24,14 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
+import kotlinx.serialization.json.Json
 
 class AuthApi(
     private val client: HttpClient,
     private val baseUrl: String,
 ) {
+    private val errorJson = Json { ignoreUnknownKeys = true }
+
     suspend fun register(request: RegisterRequestDto): RegisterResponseDto =
         execute {
             client.post(url("/v1/auth/register")) {
@@ -92,16 +96,26 @@ class AuthApi(
             if (response.status.value in 200..299) {
                 response.body()
             } else {
-                throw Exception(errorMessageParser(response.bodyAsText()))
+                throw parseApiException(response.bodyAsText())
             }
         } catch (e: ClientRequestException) {
-            throw Exception(errorMessageParser(e.response.bodyAsText()))
+            throw parseApiException(e.response.bodyAsText())
         } catch (e: ServerResponseException) {
             throw Exception("Server error: ${e.response.status.value}")
+        } catch (e: AuthApiException) {
+            throw e
         } catch (e: Exception) {
             throw Exception(e.message ?: "Unexpected network error")
         }
     }
 
     private fun url(path: String): String = "${baseUrl.trimEnd('/')}$path"
+
+    private fun parseApiException(errorText: String): AuthApiException {
+        val dto = runCatching { errorJson.decodeFromString<ApiErrorDto>(errorText) }.getOrNull()
+        return AuthApiException(
+            code = dto?.code,
+            message = dto?.message ?: errorMessageParser(errorText),
+        )
+    }
 }

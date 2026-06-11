@@ -4,6 +4,7 @@ import com.noztek.xend.core.presentation.defaultViewModelScope
 import com.noztek.xend.core.utils.capitalizeWords
 import com.noztek.xend.core.time.currentEpochSeconds
 import com.noztek.xend.currentDeviceName
+import com.noztek.xend.feature.auth.data.remote.AuthApiException
 import com.noztek.xend.feature.auth.domain.model.LoginParams
 import com.noztek.xend.feature.auth.domain.usecase.CompleteLoginSessionUseCase
 import com.noztek.xend.feature.auth.domain.usecase.CompleteLogoutSessionUseCase
@@ -53,15 +54,15 @@ class AuthViewModel(
     }
 
     fun onRegisterDisplayNameChanged(value: String) {
-        _state.update { it.copy(registerDisplayName = value.capitalizeWords(), message = null) }
+        _state.update { it.copy(registerDisplayName = value.capitalizeWords(), message = null, existingAccountEmail = null) }
     }
 
     fun onRegisterEmailChanged(value: String) {
-        _state.update { it.copy(registerEmail = value, message = null) }
+        _state.update { it.copy(registerEmail = value, message = null, existingAccountEmail = null) }
     }
 
     fun onRegisterPasswordChanged(value: String) {
-        _state.update { it.copy(registerPassword = value, message = null) }
+        _state.update { it.copy(registerPassword = value, message = null, existingAccountEmail = null) }
     }
 
     fun prepareVerification(
@@ -167,28 +168,53 @@ class AuthViewModel(
             }
         }
 
-        runAction("Registration completed. Verify your email.") {
-            val resendAvailableAtEpochSeconds = currentEpochSeconds() + VERIFICATION_RESEND_COOLDOWN_SECONDS
-            val registeredEmail = registerWithEmailAction(
-                displayName = displayName,
-                email = email,
-                password = password,
-                deviceName = currentDeviceName(),
-            )
-            savePendingEmailVerification(
-                email = registeredEmail,
-                resendAvailableAtEpochSeconds = resendAvailableAtEpochSeconds,
-            )
-            _state.update {
-                it.copy(
-                    registerDisplayName = displayName,
-                    registerEmail = registeredEmail,
-                    registerPassword = "",
-                    loginEmail = registeredEmail,
-                    verificationEmail = registeredEmail,
-                    verificationResendAvailableAtEpochSeconds = resendAvailableAtEpochSeconds,
-                    registeredEmail = registeredEmail,
+        scope.launch {
+            _state.update { it.copy(isLoading = true, message = null, existingAccountEmail = null) }
+            runCatching {
+                val resendAvailableAtEpochSeconds = currentEpochSeconds() + VERIFICATION_RESEND_COOLDOWN_SECONDS
+                val registeredEmail = registerWithEmailAction(
+                    displayName = displayName,
+                    email = email,
+                    password = password,
+                    deviceName = currentDeviceName(),
                 )
+                savePendingEmailVerification(
+                    email = registeredEmail,
+                    resendAvailableAtEpochSeconds = resendAvailableAtEpochSeconds,
+                )
+                registeredEmail to resendAvailableAtEpochSeconds
+            }.onSuccess { (registeredEmail, resendAvailableAtEpochSeconds) ->
+                val session = getCurrentSession()
+                val profile = getCurrentProfile()
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        session = session ?: it.session,
+                        profile = profile ?: it.profile,
+                        message = "Registration completed. Verify your email.",
+                        registerDisplayName = displayName,
+                        registerEmail = registeredEmail,
+                        registerPassword = "",
+                        loginEmail = registeredEmail,
+                        verificationEmail = registeredEmail,
+                        verificationResendAvailableAtEpochSeconds = resendAvailableAtEpochSeconds,
+                        registeredEmail = registeredEmail,
+                    )
+                }
+            }.onFailure { error ->
+                val apiError = error as? AuthApiException
+                if (apiError?.code == "email_exists") {
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            message = "Email already registered. Please log in.",
+                            loginEmail = email.lowercase(),
+                            existingAccountEmail = email.lowercase(),
+                        )
+                    }
+                } else {
+                    _state.update { it.copy(isLoading = false, message = error.message ?: "Request failed") }
+                }
             }
         }
     }
@@ -320,6 +346,10 @@ class AuthViewModel(
 
     fun consumeRegisterSuccess() {
         _state.update { it.copy(registeredEmail = null) }
+    }
+
+    fun consumeExistingAccountEmail() {
+        _state.update { it.copy(existingAccountEmail = null) }
     }
 
     fun consumeEmailVerified() {

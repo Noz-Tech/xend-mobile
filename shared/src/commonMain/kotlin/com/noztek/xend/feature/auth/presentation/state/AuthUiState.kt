@@ -17,6 +17,7 @@ data class AuthUiState(
     val verificationResendAvailableAtEpochSeconds: Long = 0,
     val message: String? = null,
     val registeredEmail: String? = null,
+    val existingAccountEmail: String? = null,
     val emailVerified: Boolean = false,
 ) {
     val isRegisterSubmissionEnabled: Boolean
