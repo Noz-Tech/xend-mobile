@@ -27,11 +27,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -62,9 +61,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -191,8 +190,6 @@ fun MessageScreenContent(
         animationSpec = tween(durationMillis = 220),
         label = "typingBottomPadding",
     )
-    val density = LocalDensity.current
-    val isImeVisible = WindowInsets.ime.getBottom(density) > 0
     var draft by remember { mutableStateOf("") }
     var typingSent by remember { mutableStateOf(false) }
     var selectedMessageId by remember { mutableStateOf<String?>(null) }
@@ -241,6 +238,7 @@ fun MessageScreenContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .background(MaterialTheme.colorScheme.background),
     ) {
         ChatTopBar(
@@ -292,7 +290,7 @@ fun MessageScreenContent(
                     modifier = Modifier.fillMaxSize(),
                     state = listState,
                     reverseLayout = false,
-                    verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Bottom),
+                    verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.Bottom),
                     contentPadding = PaddingValues(
                         start = 16.dp,
                         top = 12.dp,
@@ -362,7 +360,6 @@ fun MessageScreenContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(bottom = if (isImeVisible) 4.dp else 0.dp),
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 if (state.isTyping) {
@@ -433,17 +430,23 @@ private fun MessageBubble(
     onReactionSelected: (String, ChatMessageModel) -> Unit,
     deliveredStatusIcon: @Composable (Color) -> Unit,
 ) {
-    val bubbleVerticalPadding = when (bubbleGroupPosition) {
+    val bubbleTopPadding = when (bubbleGroupPosition) {
+        BubbleGroupPosition.Single -> 6.dp
+        BubbleGroupPosition.First -> 6.dp
+        BubbleGroupPosition.Middle,
+        BubbleGroupPosition.Last -> 1.dp
+    }
+    val bubbleBottomPadding = when (bubbleGroupPosition) {
         BubbleGroupPosition.Single -> 6.dp
         BubbleGroupPosition.First,
-        BubbleGroupPosition.Middle,
-        BubbleGroupPosition.Last -> 0.dp
+        BubbleGroupPosition.Middle -> 1.dp
+        BubbleGroupPosition.Last -> 6.dp
     }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = bubbleVerticalPadding),
+            .padding(top = bubbleTopPadding, bottom = bubbleBottomPadding),
         horizontalAlignment = if (isMine) Alignment.End else Alignment.Start,
     ) {
         AnimatedVisibility(
@@ -457,6 +460,7 @@ private fun MessageBubble(
         ) {
             Column(horizontalAlignment = if (isMine) Alignment.End else Alignment.Start) {
                 ReactionBar(
+                    isMine = isMine,
                     onDismiss = onDismissActionMode,
                     onReactionSelected = { emoji -> onReactionSelected(emoji, item) },
                 )
@@ -512,8 +516,8 @@ private fun MessageBubble(
                         modifier = Modifier.padding(
                             start = 14.dp,
                             end = 14.dp,
-                            top = 8.dp,
-                            bottom = 8.dp,
+                            top = 6.dp,
+                            bottom = 6.dp,
                         ),
                     ) {
                         if (item.replyToMessageId != null) {
@@ -634,6 +638,7 @@ private fun MessageBubble(
 
 @Composable
 private fun ReactionBar(
+    isMine: Boolean,
     onDismiss: () -> Unit,
     onReactionSelected: (String) -> Unit,
 ) {
@@ -1204,23 +1209,53 @@ private fun areGroupedTogether(first: ChatMessageModel, second: ChatMessageModel
 }
 
 private fun bubbleShape(isMine: Boolean, position: BubbleGroupPosition): RoundedCornerShape {
-    val full = 30.dp
-    val large = 14.dp
-    val compact = 3.dp
+    val capsule = 24.dp
+    val outer = 18.dp
+    val inner = 4.dp
 
     return if (isMine) {
         when (position) {
-            BubbleGroupPosition.Single -> RoundedCornerShape(full)
-            BubbleGroupPosition.First -> RoundedCornerShape(full, large, full, compact)
-            BubbleGroupPosition.Middle -> RoundedCornerShape(full, compact, full, compact)
-            BubbleGroupPosition.Last -> RoundedCornerShape(full, compact, full, large)
+            BubbleGroupPosition.Single -> RoundedCornerShape(capsule)
+            BubbleGroupPosition.First -> RoundedCornerShape(
+                topStart = capsule,
+                topEnd = outer,
+                bottomStart = capsule,
+                bottomEnd = inner,
+            )
+            BubbleGroupPosition.Middle -> RoundedCornerShape(
+                topStart = capsule,
+                topEnd = inner,
+                bottomStart = capsule,
+                bottomEnd = inner,
+            )
+            BubbleGroupPosition.Last -> RoundedCornerShape(
+                topStart = capsule,
+                topEnd = inner,
+                bottomStart = capsule,
+                bottomEnd = outer,
+            )
         }
     } else {
         when (position) {
-            BubbleGroupPosition.Single -> RoundedCornerShape(full)
-            BubbleGroupPosition.First -> RoundedCornerShape(large, full, compact, full)
-            BubbleGroupPosition.Middle -> RoundedCornerShape(compact, full, compact, full)
-            BubbleGroupPosition.Last -> RoundedCornerShape(compact, full, large, full)
+            BubbleGroupPosition.Single -> RoundedCornerShape(capsule)
+            BubbleGroupPosition.First -> RoundedCornerShape(
+                topStart = outer,
+                topEnd = capsule,
+                bottomStart = inner,
+                bottomEnd = capsule,
+            )
+            BubbleGroupPosition.Middle -> RoundedCornerShape(
+                topStart = inner,
+                topEnd = capsule,
+                bottomStart = inner,
+                bottomEnd = capsule,
+            )
+            BubbleGroupPosition.Last -> RoundedCornerShape(
+                topStart = inner,
+                topEnd = capsule,
+                bottomStart = outer,
+                bottomEnd = capsule,
+            )
         }
     }
 }
