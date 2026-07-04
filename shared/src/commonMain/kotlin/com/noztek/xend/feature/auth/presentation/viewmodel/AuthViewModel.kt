@@ -318,7 +318,7 @@ class AuthViewModel(
                         profile = profile,
                         loginPassword = "",
                         verificationCode = "",
-                        message = "Login success",
+                        message = null,
                     )
                 }
             }.onFailure { e ->

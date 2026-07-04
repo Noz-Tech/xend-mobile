@@ -105,6 +105,7 @@ import kotlin.math.abs
 import kotlin.math.sin
 import org.koin.compose.koinInject
 import androidx.compose.runtime.collectAsState
+import kotlinx.datetime.number
 
 private enum class MessageQuickAction {
     Reply,
@@ -1269,7 +1270,7 @@ private fun formatCalendarDate(date: LocalDate): String {
         DayOfWeek.SATURDAY -> "Sat"
         DayOfWeek.SUNDAY -> "Sun"
     }
-    val month = when (date.monthNumber) {
+    val month = when (date.month.number) {
         1 -> "Jan"
         2 -> "Feb"
         3 -> "Mar"
@@ -1283,7 +1284,7 @@ private fun formatCalendarDate(date: LocalDate): String {
         11 -> "Nov"
         else -> "Dec"
     }
-    return "$weekday, ${date.dayOfMonth} $month"
+    return "$weekday, ${date.day} $month"
 }
 
 @Composable

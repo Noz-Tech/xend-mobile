@@ -4,6 +4,8 @@ enum class StartupDestination {
     OFFLINE,
     WELCOME,
     VERIFY_EMAIL,
+    INCOMING_INVITE,
+    OUTGOING_INVITE,
     SPACE_SETUP,
     MAIN,
 }

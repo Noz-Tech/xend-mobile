@@ -5,6 +5,7 @@ import com.noztek.xend.feature.auth.data.local.dao.AuthSessionDao
 import com.noztek.xend.feature.auth.domain.model.AuthSessionModel
 import com.noztek.xend.feature.device.data.local.dao.SignalSessionDao
 import com.noztek.xend.feature.device.data.remote.DeviceApi
+import com.noztek.xend.feature.device.domain.usecase.DeviceKeysSyncer
 import com.noztek.xend.feature.device.domain.usecase.SignalSessionBootstrapper
 import com.noztek.xend.feature.message.data.crypto.DuplicateSignalMessageException
 import com.noztek.xend.feature.message.data.crypto.SecureMessageCipher
@@ -31,6 +32,7 @@ class MessageRepositoryImpl(
     private val deviceApi: DeviceApi,
     private val spaceApi: SpaceApi,
     private val signalSessionDao: SignalSessionDao,
+    private val deviceKeysSyncer: DeviceKeysSyncer,
     private val signalMessageCipher: SecureMessageCipher,
     private val signalSessionBootstrapper: SignalSessionBootstrapper,
 ) : MessageRepository {
@@ -117,6 +119,7 @@ class MessageRepositoryImpl(
 
     override suspend fun syncMessages() {
         val session = authSessionDao.getCurrentSession() ?: return
+        deviceKeysSyncer.syncIfNeeded(session.accessToken, session.deviceId)
         signalSessionBootstrapper.bootstrap()
         val since = messageDao.getLatestServerReceivedAt()
         val items = messageApi.syncMessages(session.accessToken, since)
@@ -143,7 +146,10 @@ class MessageRepositoryImpl(
                 return@forEach
             }
 
-            val remoteSession = signalSessionDao.getUsableDeterministicSession(item.senderUserId, item.senderDeviceId)
+            val remoteSession = resolveSenderSessionForInboundMessage(
+                senderUserId = item.senderUserId,
+                senderDeviceId = item.senderDeviceId,
+            )
                 ?: return@forEach
             val plaintext = runCatching {
                 signalMessageCipher.decryptFromMessage(
@@ -279,6 +285,19 @@ class MessageRepositoryImpl(
                     signalSessionDao.getUsableDeterministicSession(session.userId, session.deviceId) != null
             }
             ?: error("No bootstrapped signal session for recipient")
+    }
+
+    private suspend fun resolveSenderSessionForInboundMessage(
+        senderUserId: String,
+        senderDeviceId: String,
+    ): SignalSessionDao.SignalSessionLocal? {
+        val current = signalSessionDao.getDeterministicSession(senderUserId, senderDeviceId)
+        if (current != null && current.resetRequired.not()) {
+            return current
+        }
+
+        signalSessionBootstrapper.bootstrap(listOf(senderUserId))
+        return signalSessionDao.getDeterministicSession(senderUserId, senderDeviceId)
     }
 
     private fun ensureTrustedIdentity(

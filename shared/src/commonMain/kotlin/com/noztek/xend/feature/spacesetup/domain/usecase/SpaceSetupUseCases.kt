@@ -13,13 +13,29 @@ import com.noztek.xend.feature.spacesetup.domain.model.SpaceSetupSnapshotModel
 class ResolveAuthenticatedEntryDestinationUseCase(
     private val syncRelationshipSpaces: SyncRelationshipSpacesUseCase,
     private val getDefaultRelationshipSpace: GetDefaultRelationshipSpaceUseCase,
+    private val getInboxInvites: GetInboxInvitesUseCase,
+    private val getSentInvites: GetSentInvitesUseCase,
 ) {
     suspend operator fun invoke(): AuthenticatedEntryDestination {
         runCatching { syncRelationshipSpaces() }
-        return if (getDefaultRelationshipSpace() != null) {
-            AuthenticatedEntryDestination.MAIN
+        if (getDefaultRelationshipSpace() != null) return AuthenticatedEntryDestination.MAIN
+
+        val hasPendingIncomingInvite = runCatching { getInboxInvites() }
+            .getOrDefault(emptyList())
+            .any { it.status.equals("pending", ignoreCase = true) }
+
+        return if (hasPendingIncomingInvite) {
+            AuthenticatedEntryDestination.INCOMING_INVITE
         } else {
-            AuthenticatedEntryDestination.SPACE_SETUP
+            val hasPendingSentInvite = runCatching { getSentInvites() }
+                .getOrDefault(emptyList())
+                .any { it.status.equals("pending", ignoreCase = true) }
+
+            if (hasPendingSentInvite) {
+                AuthenticatedEntryDestination.OUTGOING_INVITE
+            } else {
+                AuthenticatedEntryDestination.SPACE_SETUP
+            }
         }
     }
 }

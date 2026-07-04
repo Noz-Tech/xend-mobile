@@ -11,7 +11,9 @@ import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -24,7 +26,6 @@ import kotlinx.serialization.json.jsonPrimitive
 class RealtimePresenceManager(
     private val client: HttpClient,
     private val authSessionDao: AuthSessionDao,
-    private val presenceApi: PresenceApi,
     private val baseUrl: String,
     private val eventBus: RealtimeEventBus,
 ) : RealtimeSessionCoordinator {
@@ -34,21 +35,31 @@ class RealtimePresenceManager(
     private var webSocket: DefaultClientWebSocketSession? = null
     private var connectedToken: String? = null
     private var parser = Json
+    @Volatile
+    private var appInForeground = false
+    private var reconnectJob: Job? = null
 
     override fun onAppForeground() {
+        appInForeground = true
         scope.launch { connectIfAuthenticated() }
     }
 
     override fun onAppBackground() {
-        scope.launch { disconnectAndMarkOffline("app_background") }
+        appInForeground = false
+        reconnectJob?.cancel()
+        reconnectJob = null
     }
 
     override fun onLoginSuccess() {
+        appInForeground = true
         scope.launch { connectIfAuthenticated(forceReconnect = true) }
     }
 
     override fun onLogout() {
-        scope.launch { disconnectAndMarkOffline("logout") }
+        appInForeground = false
+        reconnectJob?.cancel()
+        reconnectJob = null
+        scope.launch { disconnect("logout") }
     }
 
     override fun sendTyping(conversationId: String, isTyping: Boolean) {
@@ -80,10 +91,14 @@ class RealtimePresenceManager(
             }.onSuccess { socket ->
                 webSocket = socket
                 connectedToken = session.accessToken
+                reconnectJob?.cancel()
+                reconnectJob = null
+                eventBus.publish("realtime_connected")
                 scope.launch { readSocketMessages(socket, session.accessToken) }
             }.onFailure {
                 webSocket = null
                 connectedToken = null
+                requestReconnect()
             }
         }
     }
@@ -108,6 +123,7 @@ class RealtimePresenceManager(
                     connectedToken = null
                 }
             }
+            requestReconnect()
         }
     }
 
@@ -126,12 +142,7 @@ class RealtimePresenceManager(
         }
     }
 
-    private suspend fun disconnectAndMarkOffline(reason: String) {
-        val token = connectedToken ?: authSessionDao.getCurrentSession()?.accessToken
-        if (!token.isNullOrBlank()) {
-            runCatching { presenceApi.markOffline(token) }
-        }
-
+    private suspend fun disconnect(reason: String) {
         socketMutex.withLock {
             closeSocketLocked(reason)
         }
@@ -146,11 +157,24 @@ class RealtimePresenceManager(
         }
     }
 
+    private fun requestReconnect() {
+        if (!appInForeground) return
+        reconnectJob?.cancel()
+        reconnectJob = scope.launch {
+            delay(RECONNECT_DELAY_MS)
+            connectIfAuthenticated()
+        }
+    }
+
     private fun httpToWs(url: String): String {
         return when {
             url.startsWith("https://") -> "wss://${url.removePrefix("https://")}"
             url.startsWith("http://") -> "ws://${url.removePrefix("http://")}"
             else -> url
         }
+    }
+
+    private companion object {
+        const val RECONNECT_DELAY_MS = 2_000L
     }
 }

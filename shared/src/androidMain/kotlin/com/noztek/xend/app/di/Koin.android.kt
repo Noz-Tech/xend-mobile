@@ -67,7 +67,6 @@ fun initKoinAndroid(context: Context, appConfig: AppConfig) {
                     RealtimePresenceManager(
                         client = get(),
                         authSessionDao = get(),
-                        presenceApi = get(),
                         baseUrl = get(named("api_base_url")),
                         eventBus = get(),
                     )
@@ -133,6 +132,7 @@ fun initKoinAndroid(context: Context, appConfig: AppConfig) {
                         deviceApi = get(),
                         spaceApi = get(),
                         signalSessionDao = get(),
+                        deviceKeysSyncer = get(),
                         signalMessageCipher = get(),
                         signalSessionBootstrapper = get(),
                     )

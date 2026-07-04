@@ -38,6 +38,7 @@ class MessageViewModel(
                     "message_created",
                     "message_receipt_updated",
                     "message_reaction_updated",
+                    "message_sync_completed",
                     -> refresh(conversationId)
 
                     "typing",

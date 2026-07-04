@@ -1,9 +1,17 @@
 package com.noztek.xend.feature.spacesetup.presentation.screen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
@@ -28,11 +37,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
@@ -44,16 +56,22 @@ import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.DocumentDuplicate
 import com.composables.icons.heroicons.outline.PaperAirplane
 import com.composables.icons.heroicons.outline.QrCode
+import com.composables.icons.heroicons.solid.Check
+import com.composables.icons.heroicons.solid.ClipboardDocumentCheck
 import com.noztek.xend.core.ui.components.AppButton
 import com.noztek.xend.core.ui.components.AppTextField
 import com.noztek.xend.core.ui.qr.generateQrCodeImageBitmap
+import com.noztek.xend.core.ui.scan.rememberInviteQrScannerLauncher
 import com.noztek.xend.core.ui.share.rememberTextShareLauncher
 import com.noztek.xend.feature.spacesetup.presentation.viewmodel.SpaceSetupViewModel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import xend.shared.generated.resources.Res
 import xend.shared.generated.resources.logo
+
+private const val SPACE_SETUP_POLL_INTERVAL_MS = 5_000L
 
 @Composable
 fun SpaceSetupScreen(
@@ -68,15 +86,46 @@ fun SpaceSetupScreen(
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val qrCodeSizePx = remember(density) { with(density) { 180.dp.roundToPx() } }
+    var isInviteCodeCopied by remember { mutableStateOf(false) }
     val qrCodeBitmap = remember(state.ownIdentifier, qrCodeSizePx) {
         generateQrCodeImageBitmap(
             content = state.ownIdentifier,
             sizePx = qrCodeSizePx,
         )
     }
+    val inviteCodeColor by animateColorAsState(
+        targetValue = if (isInviteCodeCopied) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onBackground
+        },
+        label = "inviteCodeColor",
+    )
+    val launchInviteQrScanner = rememberInviteQrScannerLauncher(
+        onScanned = viewModel::onPartnerCodeChanged,
+        onUnavailable = { message ->
+            scope.launch {
+                snackbarHostState.currentSnackbarData?.dismiss()
+                snackbarHostState.showSnackbar(message)
+            }
+        },
+    )
 
     LaunchedEffect(Unit) {
         viewModel.refresh()
+    }
+
+    LaunchedEffect(viewModel) {
+        while (true) {
+            delay(SPACE_SETUP_POLL_INTERVAL_MS)
+            viewModel.refresh(showLoading = false)
+        }
+    }
+
+    LaunchedEffect(isInviteCodeCopied) {
+        if (!isInviteCodeCopied) return@LaunchedEffect
+        delay(2_000)
+        isInviteCodeCopied = false
     }
 
     LaunchedEffect(state.message) {
@@ -142,16 +191,40 @@ fun SpaceSetupScreen(
                         qrCodeBitmap = qrCodeBitmap,
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = state.ownIdentifier.ifBlank { "Loading..." },
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = state.ownIdentifier.ifBlank { "Loading..." },
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            textAlign = TextAlign.Center,
+                            color = inviteCodeColor,
+                        )
+                        AnimatedVisibility(
+                            visible = isInviteCodeCopied && state.ownIdentifier.isNotBlank(),
+                            enter = scaleIn(
+                                initialScale = 0.75f,
+                                animationSpec = spring(),
+                            ),
+                            exit = scaleOut(
+                                targetScale = 0.8f,
+                                animationSpec = spring(),
+                            ),
+                        ) {
+                            Icon(
+                                imageVector = Heroicons.Solid.ClipboardDocumentCheck,
+                                contentDescription = null,
+                                tint = inviteCodeColor,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
                     if (state.displayName.isNotBlank()) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Your partner can use this code to connect with ${state.displayName}.",
+                            text = "Your partner can use this code to connect with you.",
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
@@ -170,8 +243,7 @@ fun SpaceSetupScreen(
                             onClick = {
                                 scope.launch {
                                     clipboardManager.setText(AnnotatedString(state.ownIdentifier))
-                                    snackbarHostState.currentSnackbarData?.dismiss()
-                                    snackbarHostState.showSnackbar("Invite code copied.")
+                                    isInviteCodeCopied = true
                                 }
                             },
                         )
@@ -189,15 +261,25 @@ fun SpaceSetupScreen(
                 Spacer(modifier = Modifier.height(22.dp))
                 OrDivider()
                 Spacer(modifier = Modifier.height(22.dp))
-                AppTextField(
-                    value = state.partnerCode,
-                    onValueChange = viewModel::onPartnerCodeChanged,
-                    label = "Partner invite code",
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Characters,
-                    ),
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ScanInviteButton(
+                        onClick = launchInviteQrScanner,
+                    )
+                    AppTextField(
+                        value = state.partnerCode,
+                        onValueChange = viewModel::onPartnerCodeChanged,
+                        label = "Partner invite code",
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Characters,
+                        ),
+                    )
+                }
                 Spacer(modifier = Modifier.height(14.dp))
                 AppButton(
                     text = "Send Invite",
@@ -207,48 +289,7 @@ fun SpaceSetupScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-
-            Spacer(modifier = Modifier.height(18.dp))
-            if (state.pendingIncomingInvites > 0 || state.pendingSentInvites > 0) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f),
-                            shape = RoundedCornerShape(18.dp),
-                        )
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = "Invite activity",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                    if (state.pendingIncomingInvites > 0) {
-                        Text(
-                            text = "${state.pendingIncomingInvites} incoming invite${if (state.pendingIncomingInvites == 1) "" else "s"} waiting for you.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.72f),
-                        )
-                    }
-                    if (state.pendingSentInvites > 0) {
-                        Text(
-                            text = "${state.pendingSentInvites} invite${if (state.pendingSentInvites == 1) "" else "s"} still pending with your partner.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.72f),
-                        )
-                    }
-                    Text(
-                        text = "Review invites",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable(onClick = onOpenInvites),
-                    )
-                }
-            }
-
+            
             Spacer(modifier = Modifier.weight(1f))
         }
 
@@ -257,6 +298,39 @@ fun SpaceSetupScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = 16.dp, vertical = 20.dp),
+        )
+    }
+}
+
+@Composable
+private fun ScanInviteButton(
+    onClick: () -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .size(50.dp)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.42f),
+                shape = RoundedCornerShape(14.dp),
+            )
+            .background(
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(14.dp),
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Heroicons.Outline.QrCode,
+            contentDescription = "Scan invite code",
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(20.dp),
         )
     }
 }
@@ -311,7 +385,7 @@ private fun InviteQrPanel(
 
 @Composable
 private fun InviteActionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
     enabled: Boolean,
     onClick: () -> Unit,

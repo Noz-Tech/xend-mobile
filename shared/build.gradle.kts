@@ -42,12 +42,14 @@ kotlin {
         val iosMain by getting
 
         androidMain.dependencies {
-            implementation(libs.ktor.client.android)
+            implementation(libs.androidx.activity.compose)
+            implementation(libs.ktor.client.okhttp)
             implementation(libs.sqldelight.android.driver)
             implementation(libs.androidx.sqlite)
             implementation(libs.android.sqlcipher)
             implementation(libs.libsignal.client)
             implementation(libs.zxing.core)
+            implementation(libs.zxing.android.embedded)
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.messaging)
             implementation(libs.compose.uiTextGoogleFonts)

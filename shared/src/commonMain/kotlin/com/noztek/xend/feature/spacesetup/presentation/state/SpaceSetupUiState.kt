@@ -9,6 +9,8 @@ data class SpaceSetupUiState(
     val pendingIncomingInvites: Int = 0,
     val pendingSentInvites: Int = 0,
     val message: String? = null,
+    val shouldOpenIncomingInvite: Boolean = false,
+    val shouldOpenOutgoingInvite: Boolean = false,
     val shouldEnterMain: Boolean = false,
 ) {
     val isSubmitEnabled: Boolean

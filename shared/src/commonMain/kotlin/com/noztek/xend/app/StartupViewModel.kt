@@ -48,6 +48,8 @@ class StartupViewModel(
             val destination = when {
                 !online -> StartupDestination.OFFLINE
                 authenticatedEntryDestination == AuthenticatedEntryDestination.MAIN -> StartupDestination.MAIN
+                authenticatedEntryDestination == AuthenticatedEntryDestination.INCOMING_INVITE -> StartupDestination.INCOMING_INVITE
+                authenticatedEntryDestination == AuthenticatedEntryDestination.OUTGOING_INVITE -> StartupDestination.OUTGOING_INVITE
                 authenticatedEntryDestination == AuthenticatedEntryDestination.SPACE_SETUP -> StartupDestination.SPACE_SETUP
                 pendingFlow?.step == PendingAuthFlowStep.VERIFY_EMAIL && pendingFlow.email.isNotBlank() -> StartupDestination.VERIFY_EMAIL
                 else -> StartupDestination.WELCOME

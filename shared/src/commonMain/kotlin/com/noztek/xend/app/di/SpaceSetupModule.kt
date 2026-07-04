@@ -11,6 +11,8 @@ val spaceSetupModule = module {
         ResolveAuthenticatedEntryDestinationUseCase(
             syncRelationshipSpaces = get(),
             getDefaultRelationshipSpace = get(),
+            getInboxInvites = get(),
+            getSentInvites = get(),
         )
     }
     factory {
@@ -27,6 +29,7 @@ val spaceSetupModule = module {
         SpaceSetupViewModel(
             loadSpaceSetup = get(),
             submitPartnerInviteCode = get(),
+            realtimeSignals = get(),
         )
     }
 }

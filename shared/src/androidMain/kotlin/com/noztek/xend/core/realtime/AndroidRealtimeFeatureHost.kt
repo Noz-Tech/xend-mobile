@@ -32,6 +32,15 @@ class AndroidRealtimeFeatureHost(
         scope.launch {
             eventBus.events.collect { event ->
                 when (event.type) {
+                    "realtime_connected" -> {
+                        runCatching { syncRelationshipSpaces() }
+                        runCatching { bootstrapSignalSessions() }
+                        bumpInviteTick()
+                        bumpSpaceTick()
+                        runCatching { syncMessages() }
+                        _messageEvents.tryEmit(RealtimeEvent(type = "message_sync_completed"))
+                    }
+
                     "relationship_invite_received",
                     "relationship_invite_declined",
                     -> {

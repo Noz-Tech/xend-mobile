@@ -29,9 +29,11 @@ import com.noztek.xend.core.ui.components.RootTopBar
 import com.noztek.xend.feature.auth.presentation.screen.LoginScreen
 import com.noztek.xend.feature.auth.presentation.screen.RegisterScreen
 import com.noztek.xend.feature.auth.presentation.screen.VerifyEmailScreen
+import com.noztek.xend.feature.incominginvite.presentation.screen.IncomingInviteScreen
 import com.noztek.xend.feature.invites.presentation.screen.InvitePartnerScreen
 import com.noztek.xend.feature.invites.presentation.screen.InvitesScreen
 import com.noztek.xend.feature.message.presentation.screen.MessageScreen
+import com.noztek.xend.feature.outgoinginvite.presentation.screen.OutgoingInviteScreen
 import com.noztek.xend.feature.auth.presentation.viewmodel.AuthViewModel
 import com.noztek.xend.feature.space.presentation.screen.SpaceScreen
 import com.noztek.xend.feature.space.presentation.screen.HiddenSpacesScreen
@@ -45,6 +47,8 @@ private object AppRoutes {
     const val Offline = "offline"
     const val Welcome = "welcome"
     const val AuthGraph = "auth"
+    const val IncomingInvite = "incoming-invite"
+    const val OutgoingInvite = "outgoing-invite"
     const val SpaceSetup = "space-setup"
     const val Main = "main"
     const val InvitePartner = "invite-partner"
@@ -119,6 +123,18 @@ fun AppNavHost(
                         }
                     }
 
+                    StartupDestination.INCOMING_INVITE -> {
+                        navController.navigate(AppRoutes.IncomingInvite) {
+                            popUpTo(AppRoutes.Startup) { inclusive = true }
+                        }
+                    }
+
+                    StartupDestination.OUTGOING_INVITE -> {
+                        navController.navigate(AppRoutes.OutgoingInvite) {
+                            popUpTo(AppRoutes.Startup) { inclusive = true }
+                        }
+                    }
+
                     StartupDestination.OFFLINE -> {
                         navController.navigate(AppRoutes.Offline) {
                             popUpTo(AppRoutes.Startup) { inclusive = true }
@@ -165,9 +181,55 @@ fun AppNavHost(
                 }
             }
 
+            LaunchedEffect(setupState.shouldOpenIncomingInvite) {
+                if (!setupState.shouldOpenIncomingInvite) return@LaunchedEffect
+                setupViewModel.consumeOpenIncomingInvite()
+                navController.navigate(AppRoutes.IncomingInvite) {
+                    launchSingleTop = true
+                }
+            }
+
+            LaunchedEffect(setupState.shouldOpenOutgoingInvite) {
+                if (!setupState.shouldOpenOutgoingInvite) return@LaunchedEffect
+                setupViewModel.consumeOpenOutgoingInvite()
+                navController.navigate(AppRoutes.OutgoingInvite) {
+                    launchSingleTop = true
+                }
+            }
+
             SpaceSetupScreen(
                 onOpenInvites = { navController.navigate(AppRoutes.Invites) },
                 viewModel = setupViewModel,
+            )
+        }
+
+        composable(AppRoutes.IncomingInvite) {
+            IncomingInviteScreen(
+                onAccepted = {
+                    navController.navigate(AppRoutes.Main) {
+                        popUpTo(AppRoutes.IncomingInvite) { inclusive = true }
+                    }
+                },
+                onDeclined = {
+                    navController.navigate(AppRoutes.SpaceSetup) {
+                        popUpTo(AppRoutes.IncomingInvite) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(AppRoutes.OutgoingInvite) {
+            OutgoingInviteScreen(
+                onAccepted = {
+                    navController.navigate(AppRoutes.Main) {
+                        popUpTo(AppRoutes.OutgoingInvite) { inclusive = true }
+                    }
+                },
+                onReturnedToSetup = {
+                    navController.navigate(AppRoutes.SpaceSetup) {
+                        popUpTo(AppRoutes.OutgoingInvite) { inclusive = true }
+                    }
+                },
             )
         }
 

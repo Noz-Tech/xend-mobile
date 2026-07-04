@@ -2,6 +2,8 @@ package com.noztek.xend.feature.spacesetup.domain.model
 
 enum class AuthenticatedEntryDestination {
     MAIN,
+    INCOMING_INVITE,
+    OUTGOING_INVITE,
     SPACE_SETUP,
 }
 
