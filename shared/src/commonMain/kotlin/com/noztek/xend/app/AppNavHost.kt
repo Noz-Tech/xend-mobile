@@ -24,8 +24,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import com.noztek.xend.core.ui.components.AppBottomBar
 import com.noztek.xend.core.ui.components.BackTopBar
+import com.noztek.xend.core.ui.components.RootBottomBarTab
 import com.noztek.xend.core.ui.components.RootTopBar
+import com.noztek.xend.core.ui.components.rememberRootBottomBarItems
 import com.noztek.xend.feature.auth.presentation.screen.LoginScreen
 import com.noztek.xend.feature.auth.presentation.screen.RegisterScreen
 import com.noztek.xend.feature.auth.presentation.screen.VerifyEmailScreen
@@ -245,16 +248,44 @@ fun AppNavHost(
         )
 
         composable(AppRoutes.Main) {
-            SpaceScreen(
-                onOpenInvites = { navController.navigate(AppRoutes.Invites) },
-                onOpenHiddenSpaces = { navController.navigate(AppRoutes.HiddenSpaces) },
-                onMessageClick = { conversationId ->
-                    if (conversationId.isBlank()) return@SpaceScreen
-                    activeConversationId = conversationId
+            val bottomItems = rememberRootBottomBarItems(
+                selectedTab = RootBottomBarTab.Space,
+                onSpaceClick = {},
+                onRitualsClick = { navController.navigate(AppRoutes.InvitePartner) },
+                onPetClick = {
+                    // TODO: Navigate to pet experience when the feature screen exists.
+                },
+                onChatClick = {
+                    if (activeConversationId.isBlank()) return@rememberRootBottomBarItems
                     navController.navigate(AppRoutes.Message)
                 },
-                onInviteClick = { navController.navigate(AppRoutes.InvitePartner) },
+                onProfileClick = { navController.navigate(AppRoutes.HiddenSpaces) },
             )
+
+            AppRouteScaffold(
+                topBar = {
+                    RootTopBar(
+                        title = "Xend",
+                        onNotificationClick = { navController.navigate(AppRoutes.Invites) },
+                        showLogo = true,
+                        showNotification = true,
+                        showSearch = false,
+                        showMenu = false,
+                    )
+                },
+                bottomBar = {
+                    AppBottomBar(items = bottomItems)
+                },
+            ) {
+                SpaceScreen(
+                    onMessageClick = { conversationId ->
+                        if (conversationId.isBlank()) return@SpaceScreen
+                        activeConversationId = conversationId
+                        navController.navigate(AppRoutes.Message)
+                    },
+                    onInviteClick = { navController.navigate(AppRoutes.InvitePartner) },
+                )
+            }
         }
 
         composable(AppRoutes.InvitePartner) {
@@ -404,11 +435,13 @@ private fun NavGraphBuilder.authNavGraph(
 @Composable
 private fun AppRouteScaffold(
     topBar: @Composable () -> Unit,
+    bottomBar: @Composable () -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = topBar,
+        bottomBar = bottomBar,
     ) { innerPadding ->
         Column(
             modifier = Modifier

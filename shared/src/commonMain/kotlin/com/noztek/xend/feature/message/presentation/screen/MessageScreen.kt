@@ -78,6 +78,7 @@ import com.composables.icons.heroicons.outline.DocumentDuplicate
 import com.composables.icons.heroicons.outline.EllipsisVertical
 import com.composables.icons.heroicons.outline.FaceSmile
 import com.composables.icons.heroicons.outline.MapPin
+import com.noztek.xend.core.ui.theme.XendTheme
 import com.composables.icons.heroicons.outline.Microphone
 import com.composables.icons.heroicons.outline.PaperAirplane
 import com.composables.icons.heroicons.outline.Phone
@@ -477,17 +478,18 @@ private fun MessageBubble(
                 ) { onDismissActionMode() },
             horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
         ) {
+            val palette = XendTheme.palette
             val bubbleColor = when {
                 isSelected -> MaterialTheme.colorScheme.primary
-                isMine -> MaterialTheme.colorScheme.primary.copy(alpha = 0.88f)
-                else -> MaterialTheme.colorScheme.surfaceContainer
+                isMine -> palette.peachSoft
+                else -> palette.lavenderSoft
             }
-            val textColor = if (isSelected || isMine) {
+            val textColor = if (isSelected) {
                 MaterialTheme.colorScheme.onPrimary
             } else {
                 MaterialTheme.colorScheme.onSurface
             }
-            val metaColor = if (isSelected || isMine) {
+            val metaColor = if (isSelected) {
                 MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f)
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
