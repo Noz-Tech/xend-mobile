@@ -2,7 +2,7 @@ package com.noztek.xend.feature.space.presentation.viewmodel
 
 import com.noztek.xend.core.presentation.defaultViewModelScope
 import com.noztek.xend.core.realtime.RealtimeFeatureSignals
-import com.noztek.xend.feature.message.domain.usecase.GetUnreadCountUseCase
+import com.noztek.xend.feature.space.domain.usecase.GetDefaultSpaceHeroUseCase
 import com.noztek.xend.feature.space.domain.usecase.GetDefaultRelationshipSpaceUseCase
 import com.noztek.xend.feature.space.domain.usecase.SyncRelationshipSpacesUseCase
 import com.noztek.xend.feature.space.presentation.state.SpaceUiState
@@ -13,8 +13,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class SpaceViewModel(
-    private val getUnreadCount: GetUnreadCountUseCase,
     private val getDefaultRelationshipSpace: GetDefaultRelationshipSpaceUseCase,
+    private val getDefaultSpaceHero: GetDefaultSpaceHeroUseCase,
     private val syncRelationshipSpaces: SyncRelationshipSpacesUseCase,
     private val realtimeSignals: RealtimeFeatureSignals,
 ) {
@@ -24,7 +24,6 @@ class SpaceViewModel(
 
     init {
         syncFromApi()
-        refresh()
         scope.launch {
             realtimeSignals.spaceRefreshTick.collect {
                 if (it > 0) refresh()
@@ -37,15 +36,12 @@ class SpaceViewModel(
             _state.update { it.copy(isLoading = true, message = null) }
             runCatching { getDefaultRelationshipSpace() }
                 .onSuccess { defaultSpace ->
-                    val unreadCount = defaultSpace?.conversationId
-                        ?.takeIf { it.isNotBlank() }
-                        ?.let { getUnreadCount(it) }
-                        ?: 0
+                    val hero = getDefaultSpaceHero(defaultSpace)
                     _state.update {
                         it.copy(
                             isLoading = false,
-                            defaultSpace = defaultSpace?.copy(unreadCount = unreadCount),
-                            unreadCount = unreadCount,
+                            defaultSpace = defaultSpace,
+                            hero = hero,
                         )
                     }
                 }

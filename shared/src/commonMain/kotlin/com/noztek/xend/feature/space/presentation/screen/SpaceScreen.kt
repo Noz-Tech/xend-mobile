@@ -23,8 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -51,7 +50,6 @@ import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ChatBubbleLeftRight
-import com.composables.icons.heroicons.outline.ChatBubbleOvalLeftEllipsis
 import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.FaceSmile
 import com.composables.icons.heroicons.outline.Gift
@@ -62,6 +60,7 @@ import com.composables.icons.heroicons.outline.Trophy
 import com.composables.icons.heroicons.solid.Fire
 import com.composables.icons.heroicons.solid.Heart
 import com.noztek.xend.feature.space.domain.model.RelationshipSpaceCardModel
+import com.noztek.xend.feature.space.domain.model.SpaceHeroModel
 import com.noztek.xend.feature.space.presentation.viewmodel.SpaceViewModel
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
@@ -70,27 +69,24 @@ import xend.shared.generated.resources.couple
 import xend.shared.generated.resources.couple_1
 import xend.shared.generated.resources.pet
 
-private data class CoupleSpaceUiModel(
-    val userName: String,
-    val partnerName: String,
-    val daysConnected: Int,
-    val bondLevel: Int,
-    val bondTitle: String,
-    val bondPoints: Int,
-    val bondTarget: Int,
+private data class MoodPreviewModel(
     val userMood: String,
     val partnerMood: String,
-    val recentMoment: String,
-    val recentMomentReward: String,
+)
+
+private data class PetPreviewModel(
     val petName: String,
     val petLevel: Int,
     val petStatus: String,
     val petEnergy: Float,
     val petLove: Float,
     val petNextReward: String,
-    val nextReward: String,
+)
+
+private data class SpacePreviewContent(
+    val mood: MoodPreviewModel,
+    val pet: PetPreviewModel,
     val ritualPrompt: String,
-    val bondStreakDays: Int,
 )
 
 private data class QuickActionUi(
@@ -101,40 +97,42 @@ private data class QuickActionUi(
     val onClick: () -> Unit,
 )
 
-private val mockCoupleSpace = CoupleSpaceUiModel(
+private val previewContent = SpacePreviewContent(
+    mood = MoodPreviewModel(
+        userMood = "Tired",
+        partnerMood = "Happy",
+    ),
+    pet = PetPreviewModel(
+        petName = "Mochi",
+        petLevel = 5,
+        petStatus = "Happy",
+        petEnergy = 0.66f,
+        petLove = 0.78f,
+        petNextReward = "Cozy Hat",
+    ),
+    ritualPrompt = "Share one thing you're looking forward to this week.",
+)
+
+private val mockHero = SpaceHeroModel(
     userName = "Johnny",
     partnerName = "Antonette",
-    daysConnected = 128,
-    bondLevel = 4,
-    bondTitle = "Growing Closer",
-    bondPoints = 620,
-    bondTarget = 1000,
-    userMood = "Tired",
-    partnerMood = "Happy",
-    recentMoment = "Completed yesterday's ritual together",
-    recentMomentReward = "+40 BP",
-    petName = "Mochi",
-    petLevel = 5,
-    petStatus = "Happy",
-    petEnergy = 0.66f,
-    petLove = 0.78f,
-    petNextReward = "Cozy Hat",
-    nextReward = "Date Night Planner",
-    ritualPrompt = "Share one thing you're looking forward to this week.",
-    bondStreakDays = 28,
+    connectedDays = 128,
 )
 
 @Composable
 fun SpaceScreen(
-    onInviteClick: () -> Unit = {},
+    onDailyRitualClick: () -> Unit = {},
+    onGamesClick: () -> Unit = {},
+    onChallengesClick: () -> Unit = {},
     onMessageClick: (String) -> Unit = {},
     viewModel: SpaceViewModel = koinInject(),
 ) {
-    val model = mockCoupleSpace
     val state by viewModel.state.collectAsState()
+    val hero = state.hero ?: mockHero
+    val defaultSpace = state.defaultSpace
     val palette = rememberSpacePalette()
     val listState = rememberLazyListState()
-    val conversationId = state.defaultSpace?.conversationId.orEmpty()
+    val conversationId = defaultSpace?.conversationId.orEmpty()
     val heroCollapseProgress by remember(listState) {
         derivedStateOf {
             when {
@@ -150,7 +148,7 @@ fun SpaceScreen(
             }
         }
     }
-    val quickActions = remember(openChat, palette) {
+    val quickActions = remember(openChat, palette, onChallengesClick) {
         listOf(
             QuickActionUi(
                 title = "Chat",
@@ -164,27 +162,21 @@ fun SpaceScreen(
                 icon = Heroicons.Outline.Heart,
                 iconTint = palette.primary,
                 containerColor = palette.primarySoft,
-                onClick = {
-                    // TODO: Open ritual flow.
-                },
+                onClick = onDailyRitualClick,
             ),
             QuickActionUi(
                 title = "Games",
                 icon = Heroicons.Outline.Sparkles,
                 iconTint = palette.orange,
                 containerColor = palette.orangeSoft,
-                onClick = {
-                    // TODO: Open games flow.
-                },
+                onClick = onGamesClick,
             ),
             QuickActionUi(
                 title = "Challenges",
                 icon = Heroicons.Outline.Trophy,
                 iconTint = palette.lavender,
                 containerColor = palette.lavenderSoft,
-                onClick = {
-                    // TODO: Open challenge flow.
-                },
+                onClick = onChallengesClick,
             ),
         )
     }
@@ -211,26 +203,14 @@ fun SpaceScreen(
     ) {
         item {
             HeroGreetingSection(
-                model = model,
+                hero = hero,
                 palette = palette,
                 collapseProgress = heroCollapseProgress,
             )
         }
         item {
             CoupleLevelCard(
-                model = model,
-                palette = palette,
-            )
-        }
-        item {
-            MoodCheckInCard(
-                model = model,
-                palette = palette,
-            )
-        }
-        item {
-            PetCard(
-                model = model,
+                space = defaultSpace,
                 palette = palette,
             )
         }
@@ -241,10 +221,23 @@ fun SpaceScreen(
             )
         }
         item {
-            TodaysRitualCard(
-                model = model,
+            MoodCheckInCard(
+                hero = hero,
+                model = previewContent.mood,
                 palette = palette,
-                onClick = onInviteClick,
+            )
+        }
+        item {
+            PetCard(
+                model = previewContent.pet,
+                palette = palette,
+            )
+        }
+        item {
+            TodaysRitualCard(
+                ritualPrompt = previewContent.ritualPrompt,
+                palette = palette,
+                onClick = onDailyRitualClick,
             )
         }
     }
@@ -252,7 +245,7 @@ fun SpaceScreen(
 
 @Composable
 private fun HeroGreetingSection(
-    model: CoupleSpaceUiModel,
+    hero: SpaceHeroModel,
     palette: SpacePalette,
     collapseProgress: Float,
 ) {
@@ -332,7 +325,7 @@ private fun HeroGreetingSection(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = "Hello, ${model.userName} & ${model.partnerName}",
+                text = "Hello, ${hero.userName} & ${hero.partnerName}",
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = titleSize,
@@ -348,8 +341,8 @@ private fun HeroGreetingSection(
                 modifier = Modifier.size(16.dp),
             )
         }
-        BondStreakPill(
-            streakDays = model.bondStreakDays,
+        ConnectedDaysPill(
+            connectedDays = hero.connectedDays,
             palette = palette,
         )
     }
@@ -357,7 +350,7 @@ private fun HeroGreetingSection(
 
 @Composable
 private fun PetCard(
-    model: CoupleSpaceUiModel,
+    model: PetPreviewModel,
     palette: SpacePalette,
 ) {
     val shape = RoundedCornerShape(22.dp)
@@ -382,20 +375,13 @@ private fun PetCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Surface(
-                    modifier = Modifier.size(74.dp),
-                    shape = CircleShape,
-                    color = palette.primarySoft,
-                ) {
-                    Image(
-                        painter = painterResource(Res.drawable.pet),
-                        contentDescription = model.petName,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(7.dp),
-                        contentScale = ContentScale.Crop,
-                    )
-                }
+                Image(
+                    painter = painterResource(Res.drawable.pet),
+                    contentDescription = model.petName,
+                    modifier = Modifier
+                        .size(100.dp),
+                    contentScale = ContentScale.Fit,
+                )
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(3.dp),
@@ -482,16 +468,16 @@ private fun PetStatChip(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.wrapContentHeight(),
         color = background,
         shape = RoundedCornerShape(14.dp),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
@@ -532,16 +518,16 @@ private fun PetRewardChip(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.wrapContentHeight(),
         color = palette.orangeSoft,
         shape = RoundedCornerShape(14.dp),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
@@ -567,8 +553,8 @@ private fun PetRewardChip(
 }
 
 @Composable
-private fun BondStreakPill(
-    streakDays: Int,
+private fun ConnectedDaysPill(
+    connectedDays: Int,
     palette: SpacePalette,
 ) {
     Surface(
@@ -599,13 +585,13 @@ private fun BondStreakPill(
                 modifier = Modifier.size(18.dp),
             )
             Text(
-                text = "Bond Streak",
+                text = "Connected",
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = palette.ink,
             )
             Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = "$streakDays days",
+                text = "$connectedDays days",
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold),
                 color = palette.primary,
             )
@@ -629,11 +615,13 @@ private fun FloatingHeart(
 
 @Composable
 private fun CoupleLevelCard(
-    model: CoupleSpaceUiModel,
+    space: RelationshipSpaceCardModel?,
     palette: SpacePalette,
 ) {
-    val progress = model.bondPoints.toFloat() / model.bondTarget.toFloat()
     val shape = RoundedCornerShape(22.dp)
+    val progress = space?.let {
+        (it.currentPoints.toFloat() / it.requiredPoints.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f)
+    } ?: 0f
 
     Card(
         shape = shape,
@@ -682,18 +670,20 @@ private fun CoupleLevelCard(
                             color = palette.ink,
                         )
                         Text(
-                            text = "Lv. ${model.bondLevel}",
+                            text = space?.let { "Lv. ${it.currentLevel}" } ?: "Loading",
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                             color = palette.primary,
                         )
                     }
                     Text(
-                        text = "Bond Points",
+                        text = space?.currentLevelName ?: "Bond progress",
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                         color = palette.mutedInk,
                     )
                     Text(
-                        text = "${formatNumber(model.bondPoints)} / ${formatNumber(model.bondTarget)}",
+                        text = space?.let {
+                            "${formatNumber(it.currentPoints)} / ${formatNumber(it.requiredPoints)}"
+                        } ?: "-- / --",
                         style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
                         color = palette.ink,
                     )
@@ -734,7 +724,7 @@ private fun CoupleLevelCard(
                     modifier = Modifier.size(18.dp),
                 )
                 Text(
-                    text = "Next reward: ${model.nextReward}",
+                    text = space?.let { "Current bond: ${it.currentLevelName}" } ?: "Your bond details will appear here.",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                     color = palette.mutedInk,
                 )
@@ -745,7 +735,8 @@ private fun CoupleLevelCard(
 
 @Composable
 private fun MoodCheckInCard(
-    model: CoupleSpaceUiModel,
+    hero: SpaceHeroModel,
+    model: MoodPreviewModel,
     palette: SpacePalette,
 ) {
     val shape = RoundedCornerShape(22.dp)
@@ -759,7 +750,7 @@ private fun MoodCheckInCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
                 text = "Mood Check-in",
@@ -776,7 +767,7 @@ private fun MoodCheckInCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 MoodTile(
-                    name = model.userName,
+                    name = hero.userName,
                     mood = model.userMood,
                     iconTint = palette.lavender,
                     containerColor = palette.lavenderSoft,
@@ -784,7 +775,7 @@ private fun MoodCheckInCard(
                     modifier = Modifier.weight(1f),
                 )
                 MoodTile(
-                    name = model.partnerName,
+                    name = hero.partnerName,
                     mood = model.partnerMood,
                     iconTint = palette.primary,
                     containerColor = palette.peachSoft,
@@ -849,26 +840,16 @@ private fun QuickActionsSection(
     actions: List<QuickActionUi>,
     palette: SpacePalette,
 ) {
-    Column(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(
-            text = "Quick Actions",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-            color = palette.ink,
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            actions.forEach { action ->
-                QuickActionCard(
-                    action = action,
-                    palette = palette,
-                    modifier = Modifier.weight(1f),
-                )
-            }
+        actions.forEach { action ->
+            QuickActionCard(
+                action = action,
+                palette = palette,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }
@@ -913,7 +894,7 @@ private fun QuickActionCard(
 
 @Composable
 private fun TodaysRitualCard(
-    model: CoupleSpaceUiModel,
+    ritualPrompt: String,
     palette: SpacePalette,
     onClick: () -> Unit,
 ) {
@@ -954,7 +935,7 @@ private fun TodaysRitualCard(
                     color = palette.ink,
                 )
                 Text(
-                    text = model.ritualPrompt,
+                    text = ritualPrompt,
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                     color = palette.ink,
                 )
@@ -986,28 +967,6 @@ private fun formatNumber(value: Int): String {
         .chunked(3)
         .joinToString(",")
         .reversed()
-}
-
-@Composable
-private fun AvatarCircle(
-    label: String,
-    background: Color,
-    content: Color,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(background),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-            color = content,
-        )
-    }
 }
 
 private data class SpacePalette(
@@ -1060,88 +1019,5 @@ private fun rememberSpacePalette(): SpacePalette {
             orange = Color(0xFFF5A33D),
             orangeSoft = Color(0xFFFFF5E7),
         )
-    }
-}
-
-@Composable
-internal fun DefaultSpaceCard(
-    item: RelationshipSpaceCardModel,
-    onMessageClick: () -> Unit,
-) {
-    val palette = rememberSpacePalette()
-    val progress = (item.currentPoints.toFloat() / item.requiredPoints.toFloat()).coerceIn(0f, 1f)
-
-    Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = palette.surface),
-        border = BorderStroke(1.dp, palette.outline),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                AvatarCircle(
-                    label = item.name.take(1),
-                    background = palette.primary,
-                    content = palette.heroText,
-                )
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
-                ) {
-                    Text(
-                        text = item.name,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = palette.ink,
-                    )
-                    Text(
-                        text = "Level ${item.currentLevel} · ${item.currentLevelName}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = palette.mutedInk,
-                    )
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(palette.progressTrack),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(progress)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(palette.progressFill),
-                )
-            }
-
-            Button(
-                onClick = onMessageClick,
-                enabled = item.conversationId.isNotBlank(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = palette.primary,
-                    contentColor = palette.heroText,
-                ),
-            ) {
-                Icon(
-                    imageVector = Heroicons.Outline.ChatBubbleOvalLeftEllipsis,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Open Chat")
-            }
-        }
     }
 }

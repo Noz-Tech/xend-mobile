@@ -8,7 +8,6 @@ data class RelationshipSpaceCardModel(
     val currentLevelName: String,
     val currentPoints: Int,
     val requiredPoints: Int,
-    val unreadCount: Int,
     val isDefault: Boolean,
     val accessHint: String?,
     val accessConfigured: Boolean,

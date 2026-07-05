@@ -1,17 +1,15 @@
 package com.noztek.xend.feature.space.domain.usecase
 
-import com.noztek.xend.feature.auth.data.local.dao.AuthSessionDao
+import com.noztek.xend.feature.auth.domain.usecase.GetCurrentUserProfileUseCase
 import com.noztek.xend.feature.message.data.local.dao.ConversationDao
 import com.noztek.xend.feature.space.data.local.dao.RelationshipSpaceDao
+import com.noztek.xend.feature.space.data.local.dao.RelationshipSpaceMemberDao
+import com.noztek.xend.feature.space.data.local.dao.RelationshipSpaceMemberLocal
 import com.noztek.xend.feature.space.data.remote.SpaceApi
 import com.noztek.xend.feature.space.domain.model.RelationshipSpaceCardModel
+import com.noztek.xend.feature.space.domain.model.SpaceHeroModel
 import com.noztek.xend.feature.space.domain.repository.RelationshipSpaceRepository
-
-class GetRelationshipSpaceCardsUseCase(
-    private val repository: RelationshipSpaceRepository,
-) {
-    suspend operator fun invoke(): List<RelationshipSpaceCardModel> = repository.getSpaceCards()
-}
+import kotlin.time.Clock
 
 class GetDefaultRelationshipSpaceUseCase(
     private val repository: RelationshipSpaceRepository,
@@ -19,16 +17,42 @@ class GetDefaultRelationshipSpaceUseCase(
     suspend operator fun invoke(): RelationshipSpaceCardModel? = repository.getDefaultSpace()
 }
 
+class GetDefaultSpaceHeroUseCase(
+    private val getCurrentUserProfile: GetCurrentUserProfileUseCase,
+    private val memberDao: RelationshipSpaceMemberDao,
+) {
+    suspend operator fun invoke(defaultSpace: RelationshipSpaceCardModel?): SpaceHeroModel? {
+        val space = defaultSpace ?: return null
+        val currentProfile = getCurrentUserProfile()
+        val members = memberDao.getMembers(space.relationshipSpaceId)
+
+        val currentUserId = currentProfile?.userId
+        val currentMember = currentUserId?.let { userId -> members.firstOrNull { it.userId == userId } }
+        val partnerMember = currentUserId?.let { userId -> members.firstOrNull { it.userId != userId } }
+            ?: members.firstOrNull()
+
+        val userName = currentProfile?.displayName
+            ?.takeIf { it.isNotBlank() }
+            ?: currentMember?.displayName?.takeIf { it.isNotBlank() }
+            ?: "You"
+        val partnerName = partnerMember?.displayName
+            ?.takeIf { it.isNotBlank() }
+            ?: "Your partner"
+        val connectedDays = ((Clock.System.now().epochSeconds - space.createdAtEpochSeconds)
+            .coerceAtLeast(0L) / 86_400L).toInt() + 1
+
+        return SpaceHeroModel(
+            userName = userName,
+            partnerName = partnerName,
+            connectedDays = connectedDays,
+        )
+    }
+}
+
 class GetHiddenRelationshipSpacesUseCase(
     private val repository: RelationshipSpaceRepository,
 ) {
     suspend operator fun invoke(): List<RelationshipSpaceCardModel> = repository.getHiddenSpaces()
-}
-
-class GetRelationshipSpaceByIdUseCase(
-    private val repository: RelationshipSpaceRepository,
-) {
-    suspend operator fun invoke(spaceId: String): RelationshipSpaceCardModel? = repository.getSpaceById(spaceId)
 }
 
 class SetDefaultRelationshipSpaceUseCase(
@@ -54,22 +78,14 @@ class UnlockRelationshipSpaceUseCase(
 }
 
 class SyncRelationshipSpacesUseCase(
-    private val authSessionDao: AuthSessionDao,
+    private val authSessionDao: com.noztek.xend.feature.auth.data.local.dao.AuthSessionDao,
     private val spaceApi: SpaceApi,
     private val spaceDao: RelationshipSpaceDao,
+    private val memberDao: RelationshipSpaceMemberDao,
     private val conversationDao: ConversationDao,
 ) {
     suspend operator fun invoke() {
         val session = authSessionDao.getCurrentSession() ?: return
-
-        val levels = spaceApi.getLevels(session.accessToken)
-        levels.forEach { level ->
-            spaceDao.upsertLevel(
-                level = level.level,
-                name = level.name,
-                description = level.description,
-            )
-        }
 
         val spaces = spaceApi.getSpaces(session.accessToken)
         spaces.forEach { space ->
@@ -93,6 +109,18 @@ class SyncRelationshipSpacesUseCase(
                 archivedAt = space.archivedAt,
                 createdAt = space.createdAt,
                 updatedAt = space.updatedAt,
+            )
+            val members = spaceApi.getSpaceMembers(session.accessToken, space.relationshipSpaceId)
+            memberDao.replaceMembers(
+                relationshipSpaceId = space.relationshipSpaceId,
+                members = members.map { member ->
+                    RelationshipSpaceMemberLocal(
+                        relationshipSpaceId = space.relationshipSpaceId,
+                        userId = member.userId,
+                        displayName = member.displayName,
+                        identifier = member.identifier,
+                    )
+                },
             )
 
             val progressRows = spaceApi.getLevelProgress(session.accessToken, space.relationshipSpaceId)

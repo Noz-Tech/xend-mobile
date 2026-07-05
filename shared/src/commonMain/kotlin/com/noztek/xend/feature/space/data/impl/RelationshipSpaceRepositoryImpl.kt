@@ -12,14 +12,9 @@ class RelationshipSpaceRepositoryImpl(
     private val dao: RelationshipSpaceDao,
     private val api: SpaceApi,
 ) : RelationshipSpaceRepository {
-    override suspend fun getSpaceCards(): List<RelationshipSpaceCardModel> = dao.getSpaceCards().map(::toModel)
-
     override suspend fun getDefaultSpace(): RelationshipSpaceCardModel? = dao.getDefaultSpaceCard()?.let(::toModel)
 
     override suspend fun getHiddenSpaces(): List<RelationshipSpaceCardModel> = dao.getHiddenSpaceCards().map(::toModel)
-
-    override suspend fun getSpaceById(spaceId: String): RelationshipSpaceCardModel? =
-        dao.getSpaceCardById(spaceId)?.let(::toModel)
 
     override suspend fun setDefaultSpace(spaceId: String) {
         val session = requireNotNull(authSessionDao.getCurrentSession()) { "No active session" }
@@ -47,7 +42,20 @@ class RelationshipSpaceRepositoryImpl(
             createdAt = space.createdAt,
             updatedAt = space.updatedAt,
         )
-        return requireNotNull(dao.getSpaceCardById(space.relationshipSpaceId)).let(::toModel)
+        return RelationshipSpaceCardModel(
+            relationshipSpaceId = space.relationshipSpaceId,
+            conversationId = space.conversationId,
+            name = space.name ?: "Unnamed Space",
+            currentLevel = space.currentLevel,
+            currentLevelName = space.currentLevelName,
+            currentPoints = 0,
+            requiredPoints = 100,
+            isDefault = space.isDefault,
+            accessHint = space.accessHint,
+            accessConfigured = space.accessConfigured,
+            createdAtEpochSeconds = space.createdAt,
+            updatedAtEpochSeconds = space.updatedAt,
+        )
     }
 
     private fun toModel(local: RelationshipSpaceCardLocal): RelationshipSpaceCardModel {
@@ -59,7 +67,6 @@ class RelationshipSpaceRepositoryImpl(
             currentLevelName = local.currentLevelName,
             currentPoints = local.currentPoints,
             requiredPoints = local.requiredPoints,
-            unreadCount = 0,
             isDefault = local.isDefault,
             accessHint = local.accessHint,
             accessConfigured = local.accessConfigured,

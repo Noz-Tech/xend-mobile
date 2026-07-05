@@ -1,0 +1,28 @@
+CREATE TABLE RelationshipSpaceMembers (
+    relationship_space_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    display_name TEXT NOT NULL,
+    identifier TEXT NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (relationship_space_id, user_id),
+    FOREIGN KEY(relationship_space_id) REFERENCES RelationshipSpaces(relationship_space_id) ON DELETE CASCADE
+);
+
+upsertRelationshipSpaceMember:
+INSERT OR REPLACE INTO RelationshipSpaceMembers(
+    relationship_space_id,
+    user_id,
+    display_name,
+    identifier,
+    updated_at
+)
+VALUES (?, ?, ?, ?, ?);
+
+deleteRelationshipSpaceMembersBySpaceId:
+DELETE FROM RelationshipSpaceMembers
+WHERE relationship_space_id = ?;
+
+selectRelationshipSpaceMembersBySpaceId:
+SELECT * FROM RelationshipSpaceMembers
+WHERE relationship_space_id = ?
+ORDER BY user_id ASC;

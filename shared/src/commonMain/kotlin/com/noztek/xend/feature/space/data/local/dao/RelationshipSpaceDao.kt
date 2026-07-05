@@ -48,18 +48,6 @@ class RelationshipSpaceDao(
         )
     }
 
-    fun upsertLevel(
-        level: Int,
-        name: String,
-        description: String?,
-    ) {
-        db.relationshipLevelsQueries.upsertRelationshipLevel(
-            level = level.toLong(),
-            name = name,
-            description = description,
-        )
-    }
-
     fun upsertLevelProgress(
         relationshipSpaceId: String,
         level: Int,
@@ -80,17 +68,11 @@ class RelationshipSpaceDao(
         )
     }
 
-    fun getSpaceCards(): List<RelationshipSpaceCardLocal> =
-        db.relationshipSpacesQueries.selectAllRelationshipSpaces().executeAsList().map(::toCard)
-
     fun getDefaultSpaceCard(): RelationshipSpaceCardLocal? =
         db.relationshipSpacesQueries.selectDefaultRelationshipSpace().executeAsOneOrNull()?.let(::toCard)
 
     fun getHiddenSpaceCards(): List<RelationshipSpaceCardLocal> =
         db.relationshipSpacesQueries.selectHiddenRelationshipSpaces().executeAsList().map(::toCard)
-
-    fun getSpaceCardById(spaceId: String): RelationshipSpaceCardLocal? =
-        db.relationshipSpacesQueries.selectRelationshipSpaceById(spaceId).executeAsOneOrNull()?.let(::toCard)
 
     private fun toCard(space: org.noztek.RelationshipSpaces): RelationshipSpaceCardLocal {
         val progress = db.relationshipLevelProgressQueries

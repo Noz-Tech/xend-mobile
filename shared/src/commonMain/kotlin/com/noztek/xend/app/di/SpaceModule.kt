@@ -5,10 +5,9 @@ import com.noztek.xend.feature.space.data.local.dao.RelationshipSpaceDao
 import com.noztek.xend.feature.space.data.remote.SpaceApi
 import com.noztek.xend.feature.space.domain.repository.RelationshipSpaceRepository
 import com.noztek.xend.feature.space.domain.usecase.ConfigureRelationshipSpaceAccessUseCase
+import com.noztek.xend.feature.space.domain.usecase.GetDefaultSpaceHeroUseCase
 import com.noztek.xend.feature.space.domain.usecase.GetDefaultRelationshipSpaceUseCase
 import com.noztek.xend.feature.space.domain.usecase.GetHiddenRelationshipSpacesUseCase
-import com.noztek.xend.feature.space.domain.usecase.GetRelationshipSpaceByIdUseCase
-import com.noztek.xend.feature.space.domain.usecase.GetRelationshipSpaceCardsUseCase
 import com.noztek.xend.feature.space.domain.usecase.SetDefaultRelationshipSpaceUseCase
 import com.noztek.xend.feature.space.domain.usecase.SyncRelationshipSpacesUseCase
 import com.noztek.xend.feature.space.domain.usecase.UnlockRelationshipSpaceUseCase
@@ -27,10 +26,9 @@ val spaceModule = module {
         )
     }
 
-    factory { GetRelationshipSpaceCardsUseCase(get()) }
     factory { GetDefaultRelationshipSpaceUseCase(get()) }
+    factory { GetDefaultSpaceHeroUseCase(getCurrentUserProfile = get(), memberDao = get()) }
     factory { GetHiddenRelationshipSpacesUseCase(get()) }
-    factory { GetRelationshipSpaceByIdUseCase(get()) }
     factory { SetDefaultRelationshipSpaceUseCase(get()) }
     factory { ConfigureRelationshipSpaceAccessUseCase(get()) }
     factory { UnlockRelationshipSpaceUseCase(get()) }
@@ -39,6 +37,7 @@ val spaceModule = module {
             authSessionDao = get(),
             spaceApi = get(),
             spaceDao = get(),
+            memberDao = get(),
             conversationDao = get(),
         )
     }

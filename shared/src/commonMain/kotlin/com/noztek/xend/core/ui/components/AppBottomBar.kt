@@ -12,8 +12,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ChatBubbleOvalLeftEllipsis
-import com.composables.icons.heroicons.outline.CheckCircle
-import com.composables.icons.heroicons.outline.FaceSmile
 import com.composables.icons.heroicons.outline.Home
 import com.composables.icons.heroicons.outline.User
 
@@ -26,40 +24,24 @@ data class BottomBarItem(
 
 enum class RootBottomBarTab {
     Space,
-    Rituals,
-    Pet,
     Chat,
     Profile,
 }
 
 @Composable
 fun rememberRootBottomBarItems(
-    selectedTab: RootBottomBarTab,
+    selectedTab: RootBottomBarTab?,
     onSpaceClick: () -> Unit,
-    onRitualsClick: () -> Unit,
-    onPetClick: () -> Unit,
     onChatClick: () -> Unit,
     onProfileClick: () -> Unit,
 ): List<BottomBarItem> {
-    return remember(selectedTab, onSpaceClick, onRitualsClick, onPetClick, onChatClick, onProfileClick) {
+    return remember(selectedTab, onSpaceClick, onChatClick, onProfileClick) {
         listOf(
             BottomBarItem(
                 title = "Space",
                 icon = Heroicons.Outline.Home,
                 selected = selectedTab == RootBottomBarTab.Space,
                 onClick = onSpaceClick,
-            ),
-            BottomBarItem(
-                title = "Rituals",
-                icon = Heroicons.Outline.CheckCircle,
-                selected = selectedTab == RootBottomBarTab.Rituals,
-                onClick = onRitualsClick,
-            ),
-            BottomBarItem(
-                title = "Pet",
-                icon = Heroicons.Outline.FaceSmile,
-                selected = selectedTab == RootBottomBarTab.Pet,
-                onClick = onPetClick,
             ),
             BottomBarItem(
                 title = "Chat",

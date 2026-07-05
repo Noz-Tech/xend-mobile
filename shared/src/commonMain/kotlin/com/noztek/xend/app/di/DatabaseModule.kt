@@ -13,6 +13,7 @@ import com.noztek.xend.feature.message.data.local.dao.ConversationDao
 import com.noztek.xend.feature.message.data.local.dao.MessageDao
 import com.noztek.xend.feature.message.data.local.dao.MessageReactionDao
 import com.noztek.xend.feature.message.data.local.dao.MessageReceiptDao
+import com.noztek.xend.feature.space.data.local.dao.RelationshipSpaceMemberDao
 import org.koin.dsl.module
 import org.noztek.Database
 
@@ -26,6 +27,7 @@ val databaseModule = module {
     single { MessageDao(get()) }
     single { MessageReceiptDao(get()) }
     single { MessageReactionDao(get()) }
+    single { RelationshipSpaceMemberDao(get()) }
     single { SignedPrekeyDao(get()) }
     single { OneTimePrekeyDao(get()) }
     single { KyberPrekeyDao(get()) }

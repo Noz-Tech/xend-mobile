@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -32,6 +33,9 @@ import com.noztek.xend.core.ui.components.rememberRootBottomBarItems
 import com.noztek.xend.feature.auth.presentation.screen.LoginScreen
 import com.noztek.xend.feature.auth.presentation.screen.RegisterScreen
 import com.noztek.xend.feature.auth.presentation.screen.VerifyEmailScreen
+import com.noztek.xend.feature.challenges.presentation.screen.ChallengesScreen
+import com.noztek.xend.feature.dailyritual.presentation.screen.DailyRitualScreen
+import com.noztek.xend.feature.games.presentation.screen.GamesScreen
 import com.noztek.xend.feature.incominginvite.presentation.screen.IncomingInviteScreen
 import com.noztek.xend.feature.invites.presentation.screen.InvitePartnerScreen
 import com.noztek.xend.feature.invites.presentation.screen.InvitesScreen
@@ -54,6 +58,9 @@ private object AppRoutes {
     const val OutgoingInvite = "outgoing-invite"
     const val SpaceSetup = "space-setup"
     const val Main = "main"
+    const val DailyRituals = "daily-rituals"
+    const val Challenges = "challenges"
+    const val Games = "games"
     const val InvitePartner = "invite-partner"
     const val Invites = "invites"
     const val HiddenSpaces = "hidden-spaces"
@@ -251,10 +258,6 @@ fun AppNavHost(
             val bottomItems = rememberRootBottomBarItems(
                 selectedTab = RootBottomBarTab.Space,
                 onSpaceClick = {},
-                onRitualsClick = { navController.navigate(AppRoutes.InvitePartner) },
-                onPetClick = {
-                    // TODO: Navigate to pet experience when the feature screen exists.
-                },
                 onChatClick = {
                     if (activeConversationId.isBlank()) return@rememberRootBottomBarItems
                     navController.navigate(AppRoutes.Message)
@@ -283,7 +286,35 @@ fun AppNavHost(
                         activeConversationId = conversationId
                         navController.navigate(AppRoutes.Message)
                     },
-                    onInviteClick = { navController.navigate(AppRoutes.InvitePartner) },
+                    onDailyRitualClick = { navController.navigate(AppRoutes.DailyRituals) },
+                    onGamesClick = { navController.navigate(AppRoutes.Games) },
+                    onChallengesClick = { navController.navigate(AppRoutes.Challenges) },
+                )
+            }
+        }
+
+        composable(AppRoutes.DailyRituals) {
+            AppRouteScaffold(
+                topBar = {},
+            ) {
+                DailyRitualScreen()
+            }
+        }
+
+        composable(AppRoutes.Challenges) {
+            AppRouteScaffold(
+                topBar = {},
+            ) {
+                ChallengesScreen()
+            }
+        }
+
+        composable(AppRoutes.Games) {
+            AppRouteScaffold(
+                topBar = {},
+            ) {
+                GamesScreen(
+                    onBackClick = navController::popBackStack,
                 )
             }
         }

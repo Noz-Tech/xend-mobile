@@ -51,18 +51,6 @@ data class UnlockSpaceRequestDto(
 )
 
 @Serializable
-data class RelationshipLevelsResponseDto(
-    val items: List<RelationshipLevelDto> = emptyList(),
-)
-
-@Serializable
-data class RelationshipLevelDto(
-    val level: Int,
-    val name: String,
-    val description: String? = null,
-)
-
-@Serializable
 data class LevelProgressListResponseDto(
     val items: List<LevelProgressDto> = emptyList(),
 )
@@ -97,13 +85,6 @@ class SpaceApi(
     suspend fun getSpaces(accessToken: String): List<SpaceDto> =
         execute<SpaceListResponseDto> {
             client.get(url("/v1/relationship-spaces")) {
-                header(HttpHeaders.Authorization, "Bearer $accessToken")
-            }
-        }.items
-
-    suspend fun getLevels(accessToken: String): List<RelationshipLevelDto> =
-        execute<RelationshipLevelsResponseDto> {
-            client.get(url("/v1/relationship-spaces/levels")) {
                 header(HttpHeaders.Authorization, "Bearer $accessToken")
             }
         }.items
