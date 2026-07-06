@@ -25,6 +25,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import com.noztek.xend.core.session.SessionEventType
+import com.noztek.xend.core.session.SessionEventBus
 import com.noztek.xend.core.ui.components.AppBottomBar
 import com.noztek.xend.core.ui.components.BackTopBar
 import com.noztek.xend.core.ui.components.RootBottomBarTab
@@ -34,6 +36,7 @@ import com.noztek.xend.feature.auth.presentation.screen.LoginScreen
 import com.noztek.xend.feature.auth.presentation.screen.RegisterScreen
 import com.noztek.xend.feature.auth.presentation.screen.VerifyEmailScreen
 import com.noztek.xend.feature.challenges.presentation.screen.ChallengesScreen
+import com.noztek.xend.feature.dailycheckin.presentation.screen.DailyCheckInScreen
 import com.noztek.xend.feature.dailyritual.presentation.screen.DailyRitualScreen
 import com.noztek.xend.feature.games.presentation.screen.GamesScreen
 import com.noztek.xend.feature.incominginvite.presentation.screen.IncomingInviteScreen
@@ -41,6 +44,7 @@ import com.noztek.xend.feature.invites.presentation.screen.InvitePartnerScreen
 import com.noztek.xend.feature.invites.presentation.screen.InvitesScreen
 import com.noztek.xend.feature.message.presentation.screen.MessageScreen
 import com.noztek.xend.feature.outgoinginvite.presentation.screen.OutgoingInviteScreen
+import com.noztek.xend.feature.settings.presentation.screen.SettingsScreen
 import com.noztek.xend.feature.auth.presentation.viewmodel.AuthViewModel
 import com.noztek.xend.feature.space.presentation.screen.SpaceScreen
 import com.noztek.xend.feature.space.presentation.screen.HiddenSpacesScreen
@@ -53,24 +57,26 @@ private object AppRoutes {
     const val Startup = "startup"
     const val Offline = "offline"
     const val Welcome = "welcome"
+    const val Login = "login"
     const val AuthGraph = "auth"
     const val IncomingInvite = "incoming-invite"
     const val OutgoingInvite = "outgoing-invite"
     const val SpaceSetup = "space-setup"
     const val Main = "main"
+    const val DailyCheckIn = "daily-checkin"
     const val DailyRituals = "daily-rituals"
     const val Challenges = "challenges"
     const val Games = "games"
     const val InvitePartner = "invite-partner"
     const val Invites = "invites"
     const val HiddenSpaces = "hidden-spaces"
+    const val Settings = "settings"
     const val Message = "message"
 }
 
 private object AuthRoutes {
     const val Register = "register"
     const val VerifyEmail = "verify-email"
-    const val Login = "login"
 }
 
 @Composable
@@ -79,7 +85,57 @@ fun AppNavHost(
 ) {
     val navController = rememberNavController()
     val authViewModel = koinInject<AuthViewModel>()
+    val sessionEventBus = koinInject<SessionEventBus>()
     var activeConversationId by rememberSaveable { mutableStateOf("") }
+
+    fun openChat() {
+        if (activeConversationId.isBlank()) return
+        navController.navigate(AppRoutes.Message)
+    }
+
+    fun openMain() {
+        navController.navigate(AppRoutes.Main) {
+            popUpTo(AppRoutes.Main) { inclusive = false }
+            launchSingleTop = true
+        }
+    }
+
+    fun openDailyRituals() {
+        navController.navigate(AppRoutes.DailyRituals) {
+            launchSingleTop = true
+        }
+    }
+
+    fun openDailyCheckIn() {
+        navController.navigate(AppRoutes.DailyCheckIn) {
+            launchSingleTop = true
+        }
+    }
+
+    fun openGames() {
+        navController.navigate(AppRoutes.Games) {
+            launchSingleTop = true
+        }
+    }
+
+    fun openChallenges() {
+        navController.navigate(AppRoutes.Challenges) {
+            launchSingleTop = true
+        }
+    }
+
+    LaunchedEffect(sessionEventBus, navController) {
+        sessionEventBus.events.collect { event ->
+            if (event.type != SessionEventType.Expired) return@collect
+
+            activeConversationId = ""
+            authViewModel.handleSessionExpired()
+            navController.navigate(AppRoutes.Login) {
+                popUpTo(navController.graph.id) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -179,6 +235,31 @@ fun AppNavHost(
             )
         }
 
+        composable(AppRoutes.Login) {
+            val state by authViewModel.state.collectAsState()
+
+            LaunchedEffect(state.session) {
+                if (state.session != null) {
+                    startupViewModel.checkApiHealth()
+                    navController.navigate(AppRoutes.Startup) {
+                        popUpTo(AppRoutes.Login) { inclusive = true }
+                    }
+                }
+            }
+
+            LoginScreen(
+                onCreateSpaceClick = {
+                    val popped = navController.popBackStack(AuthRoutes.Register, inclusive = false)
+                    if (!popped) {
+                        navController.navigate(AuthRoutes.Register) {
+                            launchSingleTop = true
+                        }
+                    }
+                },
+                viewModel = authViewModel,
+            )
+        }
+
         composable(AppRoutes.SpaceSetup) {
             val setupViewModel = koinInject<com.noztek.xend.feature.spacesetup.presentation.viewmodel.SpaceSetupViewModel>()
             val setupState by setupViewModel.state.collectAsState()
@@ -258,11 +339,10 @@ fun AppNavHost(
             val bottomItems = rememberRootBottomBarItems(
                 selectedTab = RootBottomBarTab.Space,
                 onSpaceClick = {},
-                onChatClick = {
-                    if (activeConversationId.isBlank()) return@rememberRootBottomBarItems
-                    navController.navigate(AppRoutes.Message)
-                },
-                onProfileClick = { navController.navigate(AppRoutes.HiddenSpaces) },
+                onRitualsClick = ::openDailyRituals,
+                onGamesClick = ::openGames,
+                onChallengesClick = ::openChallenges,
+                onChatClick = ::openChat,
             )
 
             AppRouteScaffold(
@@ -270,10 +350,11 @@ fun AppNavHost(
                     RootTopBar(
                         title = "Xend",
                         onNotificationClick = { navController.navigate(AppRoutes.Invites) },
+                        onSettingsClick = { navController.navigate(AppRoutes.Settings) },
                         showLogo = true,
                         showNotification = true,
                         showSearch = false,
-                        showMenu = false,
+                        showMenu = true,
                     )
                 },
                 bottomBar = {
@@ -286,6 +367,7 @@ fun AppNavHost(
                         activeConversationId = conversationId
                         navController.navigate(AppRoutes.Message)
                     },
+                    onDailyCheckInClick = ::openDailyCheckIn,
                     onDailyRitualClick = { navController.navigate(AppRoutes.DailyRituals) },
                     onGamesClick = { navController.navigate(AppRoutes.Games) },
                     onChallengesClick = { navController.navigate(AppRoutes.Challenges) },
@@ -293,25 +375,66 @@ fun AppNavHost(
             }
         }
 
-        composable(AppRoutes.DailyRituals) {
+        composable(AppRoutes.DailyCheckIn) {
             AppRouteScaffold(
                 topBar = {},
+            ) {
+                DailyCheckInScreen()
+            }
+        }
+
+        composable(AppRoutes.DailyRituals) {
+            val bottomItems = rememberRootBottomBarItems(
+                selectedTab = RootBottomBarTab.Rituals,
+                onSpaceClick = ::openMain,
+                onRitualsClick = {},
+                onGamesClick = ::openGames,
+                onChallengesClick = ::openChallenges,
+                onChatClick = ::openChat,
+            )
+            AppRouteScaffold(
+                topBar = {},
+                bottomBar = {
+                    AppBottomBar(items = bottomItems)
+                },
             ) {
                 DailyRitualScreen()
             }
         }
 
         composable(AppRoutes.Challenges) {
+            val bottomItems = rememberRootBottomBarItems(
+                selectedTab = RootBottomBarTab.Challenges,
+                onSpaceClick = ::openMain,
+                onRitualsClick = ::openDailyRituals,
+                onGamesClick = ::openGames,
+                onChallengesClick = {},
+                onChatClick = ::openChat,
+            )
             AppRouteScaffold(
                 topBar = {},
+                bottomBar = {
+                    AppBottomBar(items = bottomItems)
+                },
             ) {
                 ChallengesScreen()
             }
         }
 
         composable(AppRoutes.Games) {
+            val bottomItems = rememberRootBottomBarItems(
+                selectedTab = RootBottomBarTab.Games,
+                onSpaceClick = ::openMain,
+                onRitualsClick = ::openDailyRituals,
+                onGamesClick = {},
+                onChallengesClick = ::openChallenges,
+                onChatClick = ::openChat,
+            )
             AppRouteScaffold(
                 topBar = {},
+                bottomBar = {
+                    AppBottomBar(items = bottomItems)
+                },
             ) {
                 GamesScreen(
                     onBackClick = navController::popBackStack,
@@ -338,6 +461,7 @@ fun AppNavHost(
                     RootTopBar(
                         onInvitesClick = {},
                         onHiddenSpacesClick = { navController.navigate(AppRoutes.HiddenSpaces) },
+                        onSettingsClick = { navController.navigate(AppRoutes.Settings) },
                     )
                 },
             ) {
@@ -356,6 +480,26 @@ fun AppNavHost(
             ) {
                 HiddenSpacesScreen(
                     onUnlocked = { navController.popBackStack() },
+                )
+            }
+        }
+
+        composable(AppRoutes.Settings) {
+            AppRouteScaffold(
+                topBar = {
+                    BackTopBar(
+                        title = "Settings",
+                        onBackClick = navController::popBackStack,
+                    )
+                },
+            ) {
+                SettingsScreen(
+                    onLoggedOut = {
+                        startupViewModel.checkApiHealth()
+                        navController.navigate(AppRoutes.Startup) {
+                            popUpTo(AppRoutes.Main) { inclusive = true }
+                        }
+                    },
                 )
             }
         }
@@ -399,7 +543,7 @@ private fun NavGraphBuilder.authNavGraph(
                 val email = state.existingAccountEmail ?: return@LaunchedEffect
                 authViewModel.consumeExistingAccountEmail()
                 authViewModel.prepareLogin(email)
-                navController.navigate(AuthRoutes.Login) {
+                navController.navigate(AppRoutes.Login) {
                     launchSingleTop = true
                 }
             }
@@ -407,7 +551,7 @@ private fun NavGraphBuilder.authNavGraph(
             RegisterScreen(
                 onLoginClick = { email ->
                     authViewModel.prepareLogin(email)
-                    navController.navigate(AuthRoutes.Login) {
+                    navController.navigate(AppRoutes.Login) {
                         launchSingleTop = true
                     }
                 },
@@ -422,7 +566,7 @@ private fun NavGraphBuilder.authNavGraph(
                 if (!state.emailVerified) return@LaunchedEffect
                 authViewModel.consumeEmailVerified()
                 authViewModel.prepareLogin(state.verificationEmail)
-                navController.navigate(AuthRoutes.Login) {
+                navController.navigate(AppRoutes.Login) {
                     popUpTo(AuthRoutes.VerifyEmail) { inclusive = true }
                 }
             }
@@ -432,29 +576,6 @@ private fun NavGraphBuilder.authNavGraph(
                     navController.navigate(AuthRoutes.Register) {
                         popUpTo(AuthRoutes.VerifyEmail) { inclusive = true }
                         launchSingleTop = true
-                    }
-                },
-                viewModel = authViewModel,
-            )
-        }
-
-        composable(AuthRoutes.Login) {
-            val state by authViewModel.state.collectAsState()
-
-            LaunchedEffect(state.session) {
-                if (state.session != null) {
-                    onAuthenticated()
-                }
-            }
-
-            LoginScreen(
-                onCreateSpaceClick = {
-                    val popped = navController.popBackStack(AuthRoutes.Register, inclusive = false)
-                    if (!popped) {
-                        navController.navigate(AuthRoutes.Register) {
-                            popUpTo(AuthRoutes.Login) { inclusive = true }
-                            launchSingleTop = true
-                        }
                     }
                 },
                 viewModel = authViewModel,

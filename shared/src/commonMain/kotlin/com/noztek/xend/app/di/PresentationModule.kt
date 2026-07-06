@@ -13,9 +13,11 @@ import com.noztek.xend.feature.invites.presentation.viewmodel.InviteBadgeViewMod
 import com.noztek.xend.feature.invites.presentation.viewmodel.InvitePartnerViewModel
 import com.noztek.xend.feature.invites.presentation.viewmodel.InvitesViewModel
 import com.noztek.xend.feature.auth.presentation.viewmodel.AuthViewModel
+import com.noztek.xend.feature.dailycheckin.presentation.viewmodel.DailyCheckInViewModel
 import com.noztek.xend.feature.dailyritual.presentation.viewmodel.DailyRitualViewModel
 import com.noztek.xend.feature.challenges.presentation.viewmodel.ChallengesViewModel
 import com.noztek.xend.feature.games.presentation.viewmodel.GamesViewModel
+import com.noztek.xend.feature.settings.presentation.viewmodel.SettingsViewModel
 import com.noztek.xend.feature.space.presentation.viewmodel.HiddenSpacesViewModel
 import com.noztek.xend.feature.space.presentation.viewmodel.SpaceViewModel
 import org.koin.dsl.module
@@ -59,9 +61,24 @@ val presentationModule = module {
             realtimeSignals = get(),
         )
     }
+    factory {
+        DailyCheckInViewModel(
+            getOverview = get(),
+            submitDailyCheckIn = get(),
+            realtimeSignals = get(),
+        )
+    }
     factory { DailyRitualViewModel(getOverview = get()) }
     factory { ChallengesViewModel(getOverview = get()) }
     factory { GamesViewModel(getOverview = get()) }
+    factory {
+        SettingsViewModel(
+            getCurrentUserProfile = get(),
+            logout = get(),
+            clearPendingAuthFlow = get(),
+            completeLogoutSession = get(),
+        )
+    }
     factory {
         SpaceViewModel(
             getDefaultRelationshipSpace = get(),

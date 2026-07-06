@@ -23,6 +23,7 @@ class SpaceViewModel(
     val state: StateFlow<SpaceUiState> = _state.asStateFlow()
 
     init {
+        refresh()
         syncFromApi()
         scope.launch {
             realtimeSignals.spaceRefreshTick.collect {
@@ -33,28 +34,53 @@ class SpaceViewModel(
 
     fun refresh() {
         scope.launch {
-            _state.update { it.copy(isLoading = true, message = null) }
-            runCatching { getDefaultRelationshipSpace() }
-                .onSuccess { defaultSpace ->
-                    val hero = getDefaultSpaceHero(defaultSpace)
-                    _state.update {
-                        it.copy(
-                            isLoading = false,
-                            defaultSpace = defaultSpace,
-                            hero = hero,
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    _state.update { it.copy(isLoading = false, message = error.message ?: "Failed to load spaces") }
-                }
+            loadSpaceState(clearMessage = true)
         }
     }
 
     fun syncFromApi() {
         scope.launch {
             runCatching { syncRelationshipSpaces() }
-                .onSuccess { refresh() }
+                .onFailure { error ->
+                    _state.update { current ->
+                        if (current.defaultSpace == null && current.hero == null) {
+                            current.copy(message = error.message ?: "Failed to sync spaces")
+                        } else {
+                            current
+                        }
+                    }
+                }
+            loadSpaceState(clearMessage = false)
         }
+    }
+
+    private suspend fun loadSpaceState(
+        clearMessage: Boolean,
+    ) {
+        _state.update {
+            it.copy(
+                isLoading = true,
+                message = if (clearMessage) null else it.message,
+            )
+        }
+        runCatching { getDefaultRelationshipSpace() }
+            .onSuccess { defaultSpace ->
+                val hero = getDefaultSpaceHero(defaultSpace)
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        defaultSpace = defaultSpace,
+                        hero = hero,
+                    )
+                }
+            }
+            .onFailure { error ->
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        message = error.message ?: "Failed to load spaces",
+                    )
+                }
+            }
     }
 }

@@ -57,6 +57,11 @@ class AndroidRealtimeFeatureHost(
                         runCatching { syncMessages() }
                     }
 
+                    "daily_checkin_updated" -> {
+                        runCatching { syncRelationshipSpaces() }
+                        bumpSpaceTick()
+                    }
+
                     "message_created",
                     "message_receipt_updated",
                     "message_reaction_updated",

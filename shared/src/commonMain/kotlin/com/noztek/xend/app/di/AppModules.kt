@@ -10,6 +10,7 @@ fun appModules(appConfig: AppConfig) = listOf(
     inviteModule,
     incomingInviteModule,
     outgoingInviteModule,
+    dailyCheckInModule,
     dailyRitualModule,
     gamesModule,
     challengesModule,

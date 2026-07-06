@@ -344,6 +344,19 @@ class AuthViewModel(
         }
     }
 
+    fun handleSessionExpired() {
+        val currentEmail = _state.value.profile?.email.orEmpty().ifBlank { _state.value.loginEmail.trim() }
+
+        scope.launch {
+            clearPendingAuthFlow()
+            completeLogoutSession()
+            _state.value = AuthUiState(
+                loginEmail = currentEmail,
+                message = "Session expired. Please log in again.",
+            )
+        }
+    }
+
     fun consumeRegisterSuccess() {
         _state.update { it.copy(registeredEmail = null) }
     }

@@ -11,9 +11,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.CalendarDays
 import com.composables.icons.heroicons.outline.ChatBubbleOvalLeftEllipsis
+import com.composables.icons.heroicons.outline.Gift
 import com.composables.icons.heroicons.outline.Home
-import com.composables.icons.heroicons.outline.User
+import com.composables.icons.heroicons.outline.Sparkles
 
 data class BottomBarItem(
     val title: String,
@@ -24,18 +26,22 @@ data class BottomBarItem(
 
 enum class RootBottomBarTab {
     Space,
+    Rituals,
+    Games,
+    Challenges,
     Chat,
-    Profile,
 }
 
 @Composable
 fun rememberRootBottomBarItems(
     selectedTab: RootBottomBarTab?,
     onSpaceClick: () -> Unit,
+    onRitualsClick: () -> Unit,
+    onGamesClick: () -> Unit,
+    onChallengesClick: () -> Unit,
     onChatClick: () -> Unit,
-    onProfileClick: () -> Unit,
 ): List<BottomBarItem> {
-    return remember(selectedTab, onSpaceClick, onChatClick, onProfileClick) {
+    return remember(selectedTab, onSpaceClick, onRitualsClick, onGamesClick, onChallengesClick, onChatClick) {
         listOf(
             BottomBarItem(
                 title = "Space",
@@ -44,16 +50,28 @@ fun rememberRootBottomBarItems(
                 onClick = onSpaceClick,
             ),
             BottomBarItem(
+                title = "Rituals",
+                icon = Heroicons.Outline.CalendarDays,
+                selected = selectedTab == RootBottomBarTab.Rituals,
+                onClick = onRitualsClick,
+            ),
+            BottomBarItem(
+                title = "Games",
+                icon = Heroicons.Outline.Sparkles,
+                selected = selectedTab == RootBottomBarTab.Games,
+                onClick = onGamesClick,
+            ),
+            BottomBarItem(
+                title = "Challenges",
+                icon = Heroicons.Outline.Gift,
+                selected = selectedTab == RootBottomBarTab.Challenges,
+                onClick = onChallengesClick,
+            ),
+            BottomBarItem(
                 title = "Chat",
                 icon = Heroicons.Outline.ChatBubbleOvalLeftEllipsis,
                 selected = selectedTab == RootBottomBarTab.Chat,
                 onClick = onChatClick,
-            ),
-            BottomBarItem(
-                title = "Profile",
-                icon = Heroicons.Outline.User,
-                selected = selectedTab == RootBottomBarTab.Profile,
-                onClick = onProfileClick,
             ),
         )
     }

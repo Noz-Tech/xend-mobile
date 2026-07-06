@@ -49,7 +49,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.CalendarDays
 import com.composables.icons.heroicons.outline.ChatBubbleLeftRight
+import com.composables.icons.heroicons.outline.ChevronDown
 import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.FaceSmile
 import com.composables.icons.heroicons.outline.Gift
@@ -59,6 +61,8 @@ import com.composables.icons.heroicons.outline.Sun
 import com.composables.icons.heroicons.outline.Trophy
 import com.composables.icons.heroicons.solid.Fire
 import com.composables.icons.heroicons.solid.Heart
+import com.noztek.xend.core.ui.theme.XendPalette
+import com.noztek.xend.core.ui.theme.XendTheme
 import com.noztek.xend.feature.space.domain.model.RelationshipSpaceCardModel
 import com.noztek.xend.feature.space.domain.model.SpaceHeroModel
 import com.noztek.xend.feature.space.presentation.viewmodel.SpaceViewModel
@@ -121,6 +125,7 @@ private val mockHero = SpaceHeroModel(
 
 @Composable
 fun SpaceScreen(
+    onDailyCheckInClick: () -> Unit = {},
     onDailyRitualClick: () -> Unit = {},
     onGamesClick: () -> Unit = {},
     onChallengesClick: () -> Unit = {},
@@ -130,7 +135,7 @@ fun SpaceScreen(
     val state by viewModel.state.collectAsState()
     val hero = state.hero ?: mockHero
     val defaultSpace = state.defaultSpace
-    val palette = rememberSpacePalette()
+    val palette = XendTheme.palette
     val listState = rememberLazyListState()
     val conversationId = defaultSpace?.conversationId.orEmpty()
     val heroCollapseProgress by remember(listState) {
@@ -148,7 +153,14 @@ fun SpaceScreen(
             }
         }
     }
-    val quickActions = remember(openChat, palette, onChallengesClick) {
+    val quickActions = remember(
+        openChat,
+        palette,
+        onDailyCheckInClick,
+        onDailyRitualClick,
+        onGamesClick,
+        onChallengesClick,
+    ) {
         listOf(
             QuickActionUi(
                 title = "Chat",
@@ -156,6 +168,13 @@ fun SpaceScreen(
                 iconTint = palette.lavender,
                 containerColor = palette.lavenderSoft,
                 onClick = openChat,
+            ),
+            QuickActionUi(
+                title = "Check-In",
+                icon = Heroicons.Outline.CalendarDays,
+                iconTint = palette.primary,
+                containerColor = palette.primarySoft,
+                onClick = onDailyCheckInClick,
             ),
             QuickActionUi(
                 title = "Daily Ritual",
@@ -208,22 +227,24 @@ fun SpaceScreen(
                 collapseProgress = heroCollapseProgress,
             )
         }
+
+        item {
+            HeroMoodChip(
+                partnerName = hero.partnerName,
+                mood = previewContent.mood,
+                palette = palette,
+            )
+        }
         item {
             CoupleLevelCard(
                 space = defaultSpace,
+                connectedDays = hero.connectedDays,
                 palette = palette,
             )
         }
         item {
             QuickActionsSection(
                 actions = quickActions,
-                palette = palette,
-            )
-        }
-        item {
-            MoodCheckInCard(
-                hero = hero,
-                model = previewContent.mood,
                 palette = palette,
             )
         }
@@ -246,7 +267,7 @@ fun SpaceScreen(
 @Composable
 private fun HeroGreetingSection(
     hero: SpaceHeroModel,
-    palette: SpacePalette,
+    palette: XendPalette,
     collapseProgress: Float,
 ) {
     val animatedProgress by animateFloatAsState(
@@ -341,24 +362,20 @@ private fun HeroGreetingSection(
                 modifier = Modifier.size(16.dp),
             )
         }
-        ConnectedDaysPill(
-            connectedDays = hero.connectedDays,
-            palette = palette,
-        )
     }
 }
 
 @Composable
 private fun PetCard(
     model: PetPreviewModel,
-    palette: SpacePalette,
+    palette: XendPalette,
 ) {
     val shape = RoundedCornerShape(22.dp)
 
     Card(
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = palette.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
     ) {
         Column(
             modifier = Modifier
@@ -394,7 +411,7 @@ private fun PetCard(
                     Text(
                         text = "${model.petStatus} • Lv. ${model.petLevel}",
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = palette.primary,
+                        color = palette.lavender,
                     )
                     Text(
                         text = "Feed, play, and grow your shared companion together.",
@@ -437,12 +454,12 @@ private fun PetCard(
                 Text(
                     text = "Visit Pet",
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
-                    color = palette.primary,
+                    color = palette.lavender,
                 )
                 Surface(
                     modifier = Modifier.size(36.dp),
                     shape = CircleShape,
-                    color = palette.primary,
+                    color = palette.lavender,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
@@ -452,6 +469,161 @@ private fun PetCard(
                             modifier = Modifier.size(16.dp),
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CoupleLevelCard(
+    space: RelationshipSpaceCardModel?,
+    connectedDays: Int,
+    palette: XendPalette,
+) {
+    val shape = RoundedCornerShape(22.dp)
+    val progress = space?.let {
+        (it.currentPoints.toFloat() / it.requiredPoints.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f)
+    } ?: 0f
+
+    Card(
+        shape = shape,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            palette.surface,
+                            palette.surfaceRaised.copy(alpha = 0.96f),
+                            palette.lavenderSoft.copy(alpha = 0.28f),
+                        ),
+                    ),
+                ),
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 18.dp, end = 18.dp)
+                    .size(80.dp)
+                    .background(
+                        color = palette.primarySoft.copy(alpha = 0.16f),
+                        shape = CircleShape,
+                    ),
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 20.dp, bottom = 14.dp)
+                    .size(64.dp)
+                    .background(
+                        color = palette.lavenderSoft.copy(alpha = 0.14f),
+                        shape = CircleShape,
+                    ),
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Surface(
+                        color = palette.primarySoft,
+                        shape = CircleShape,
+                    ) {
+                        Box(
+                            modifier = Modifier.size(62.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Heroicons.Outline.Heart,
+                                contentDescription = null,
+                                tint = palette.primary,
+                                modifier = Modifier.size(30.dp),
+                            )
+                        }
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Couple Level",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                color = palette.ink,
+                            )
+                            Text(
+                                text = space?.let { "Lv. ${it.currentLevel}" } ?: "Loading",
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                color = palette.primary,
+                            )
+                        }
+                        Text(
+                            text = space?.currentLevelName ?: "Bond progress",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = palette.mutedInk,
+                        )
+                        Text(
+                            text = space?.let {
+                                "${formatNumber(it.currentPoints)} / ${formatNumber(it.requiredPoints)}"
+                            } ?: "-- / --",
+                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
+                            color = palette.ink,
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(palette.progressTrack),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress.coerceIn(0f, 1f))
+                            .height(10.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        palette.primaryBright,
+                                        palette.primary,
+                                    ),
+                                ),
+                            ),
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Heroicons.Solid.Fire,
+                        contentDescription = null,
+                        tint = palette.primary,
+                        modifier = Modifier.size(17.dp),
+                    )
+                    Text(
+                        text = "$connectedDays days connected",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = palette.ink,
+                    )
                 }
             }
         }
@@ -514,7 +686,7 @@ private fun PetStatChip(
 @Composable
 private fun PetRewardChip(
     reward: String,
-    palette: SpacePalette,
+    palette: XendPalette,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -553,55 +725,108 @@ private fun PetRewardChip(
 }
 
 @Composable
-private fun ConnectedDaysPill(
-    connectedDays: Int,
-    palette: SpacePalette,
+private fun HeroMoodChip(
+    partnerName: String,
+    mood: MoodPreviewModel,
+    palette: XendPalette,
 ) {
     Surface(
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(999.dp),
-        color = Color.Transparent,
-        border = BorderStroke(0.5.dp, palette.outline),
-        shadowElevation = 1.dp,
+        color = Color.White.copy(alpha = 0.98f),
+        shadowElevation = 0.5.dp,
     ) {
         Row(
             modifier = Modifier
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            palette.primarySoft.copy(alpha = 0.95f * 2),
-                            Color.White,
-                        ),
-                    ),
-                    shape = RoundedCornerShape(999.dp),
-                )
-                .padding(horizontal = 18.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
         ) {
-            Icon(
-                imageVector = Heroicons.Solid.Fire,
-                contentDescription = null,
-                tint = palette.primary,
-                modifier = Modifier.size(18.dp),
+            MoodChipSide(
+                name = "You",
+                mood = mood.userMood,
+                iconTint = palette.lavender,
+                bubbleColor = palette.lavenderSoft,
+                palette = palette,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp),
+                trailing = {
+                    Icon(
+                        imageVector = Heroicons.Outline.ChevronDown,
+                        contentDescription = null,
+                        tint = palette.mutedInk,
+                        modifier = Modifier.size(18.dp),
+                    )
+                },
             )
-            Text(
-                text = "Connected",
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = palette.ink,
+            Box(
+                modifier = Modifier
+                    .height(32.dp)
+                    .width(1.dp)
+                    .background(palette.outline.copy(alpha = 0.38f)),
             )
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = "$connectedDays days",
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold),
-                color = palette.primary,
+            MoodChipSide(
+                name = partnerName,
+                mood = mood.partnerMood,
+                iconTint = palette.primary,
+                bubbleColor = palette.peachSoft,
+                palette = palette,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 8.dp),
             )
         }
     }
 }
 
 @Composable
+private fun MoodChipSide(
+    name: String,
+    mood: String,
+    iconTint: Color,
+    bubbleColor: Color,
+    palette: XendPalette,
+    modifier: Modifier = Modifier,
+    trailing: @Composable (() -> Unit)? = null,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier.size(34.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Heroicons.Outline.FaceSmile,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(17.dp),
+            )
+        }
+        Text(
+            text = "$name:",
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+            color = palette.ink,
+        )
+        Text(
+            text = mood,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+            color = iconTint,
+        )
+        if (trailing != null) {
+            Spacer(modifier = Modifier.weight(1f))
+            trailing()
+        }
+    }
+}
+
+@Composable
 private fun FloatingHeart(
-    palette: SpacePalette,
+    palette: XendPalette,
     modifier: Modifier = Modifier,
     size: androidx.compose.ui.unit.Dp,
 ) {
@@ -614,130 +839,10 @@ private fun FloatingHeart(
 }
 
 @Composable
-private fun CoupleLevelCard(
-    space: RelationshipSpaceCardModel?,
-    palette: SpacePalette,
-) {
-    val shape = RoundedCornerShape(22.dp)
-    val progress = space?.let {
-        (it.currentPoints.toFloat() / it.requiredPoints.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f)
-    } ?: 0f
-
-    Card(
-        shape = shape,
-        colors = CardDefaults.cardColors(containerColor = palette.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.Top,
-            ) {
-                Surface(
-                    color = palette.primarySoft,
-                    shape = CircleShape,
-                ) {
-                    Box(
-                        modifier = Modifier.size(62.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Heroicons.Outline.Heart,
-                            contentDescription = null,
-                            tint = palette.primary,
-                            modifier = Modifier.size(30.dp),
-                        )
-                    }
-                }
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "Couple Level",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                            color = palette.ink,
-                        )
-                        Text(
-                            text = space?.let { "Lv. ${it.currentLevel}" } ?: "Loading",
-                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                            color = palette.primary,
-                        )
-                    }
-                    Text(
-                        text = space?.currentLevelName ?: "Bond progress",
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                        color = palette.mutedInk,
-                    )
-                    Text(
-                        text = space?.let {
-                            "${formatNumber(it.currentPoints)} / ${formatNumber(it.requiredPoints)}"
-                        } ?: "-- / --",
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
-                        color = palette.ink,
-                    )
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(palette.progressTrack),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(progress.coerceIn(0f, 1f))
-                        .height(10.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(
-                                    palette.primaryBright,
-                                    palette.primary,
-                                ),
-                            ),
-                        ),
-                )
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Heroicons.Outline.Gift,
-                    contentDescription = null,
-                    tint = palette.mutedInk,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    text = space?.let { "Current bond: ${it.currentLevelName}" } ?: "Your bond details will appear here.",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                    color = palette.mutedInk,
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun MoodCheckInCard(
     hero: SpaceHeroModel,
     model: MoodPreviewModel,
-    palette: SpacePalette,
+    palette: XendPalette,
 ) {
     val shape = RoundedCornerShape(22.dp)
 
@@ -793,7 +898,7 @@ private fun MoodTile(
     mood: String,
     iconTint: Color,
     containerColor: Color,
-    palette: SpacePalette,
+    palette: XendPalette,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -838,18 +943,28 @@ private fun MoodTile(
 @Composable
 private fun QuickActionsSection(
     actions: List<QuickActionUi>,
-    palette: SpacePalette,
+    palette: XendPalette,
 ) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        actions.forEach { action ->
-            QuickActionCard(
-                action = action,
-                palette = palette,
-                modifier = Modifier.weight(1f),
-            )
+        actions.chunked(3).forEach { rowActions ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                rowActions.forEach { action ->
+                    QuickActionCard(
+                        action = action,
+                        palette = palette,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                repeat(3 - rowActions.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
 }
@@ -857,7 +972,7 @@ private fun QuickActionsSection(
 @Composable
 private fun QuickActionCard(
     action: QuickActionUi,
-    palette: SpacePalette,
+    palette: XendPalette,
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(20.dp)
@@ -867,7 +982,7 @@ private fun QuickActionCard(
             .clickable(onClick = action.onClick),
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = palette.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
     ) {
         Column(
             modifier = Modifier
@@ -895,7 +1010,7 @@ private fun QuickActionCard(
 @Composable
 private fun TodaysRitualCard(
     ritualPrompt: String,
-    palette: SpacePalette,
+    palette: XendPalette,
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(22.dp)
@@ -903,7 +1018,7 @@ private fun TodaysRitualCard(
     Card(
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = palette.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
     ) {
         Row(
             modifier = Modifier
@@ -967,57 +1082,4 @@ private fun formatNumber(value: Int): String {
         .chunked(3)
         .joinToString(",")
         .reversed()
-}
-
-private data class SpacePalette(
-    val background: Color,
-    val backgroundGlow: Color,
-    val surface: Color,
-    val surfaceSoft: Color,
-    val surfaceRaised: Color,
-    val ink: Color,
-    val mutedInk: Color,
-    val softInk: Color,
-    val warmInk: Color,
-    val outline: Color,
-    val primary: Color,
-    val primaryBright: Color,
-    val primarySoft: Color,
-    val heroText: Color,
-    val progressTrack: Color,
-    val progressFill: Color,
-    val lavender: Color,
-    val lavenderSoft: Color,
-    val peachSoft: Color,
-    val orange: Color,
-    val orangeSoft: Color,
-)
-
-@Composable
-private fun rememberSpacePalette(): SpacePalette {
-    return remember {
-        SpacePalette(
-            background = Color(0xFFFFFAF7),
-            backgroundGlow = Color(0xFFFFF3F6),
-            surface = Color(0xFFFFFFFF),
-            surfaceSoft = Color(0xFFFFF5F7),
-            surfaceRaised = Color(0xFFFFF7F8),
-            ink = Color(0xFF171725),
-            mutedInk = Color(0xFF7D8091),
-            softInk = Color(0xFF8E90A1),
-            warmInk = Color(0xFFF08CA3),
-            outline = Color(0xFFF6EBEE),
-            primary = Color(0xFFF56C91),
-            primaryBright = Color(0xFFFF7FA0),
-            primarySoft = Color(0xFFFFEEF4),
-            heroText = Color.White,
-            progressTrack = Color(0xFFFBE1E8),
-            progressFill = Color(0xFFF56C91),
-            lavender = Color(0xFF8D72F7),
-            lavenderSoft = Color(0xFFF3EEFF),
-            peachSoft = Color(0xFFFFF1ED),
-            orange = Color(0xFFF5A33D),
-            orangeSoft = Color(0xFFFFF5E7),
-        )
-    }
 }
