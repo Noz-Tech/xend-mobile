@@ -5,6 +5,7 @@ import com.noztek.xend.app.AppConfig
 fun appModules(appConfig: AppConfig) = listOf(
     coreModule(appConfig),
     databaseModule,
+    welcomeModule,
     authModule,
     deviceModule,
     inviteModule,

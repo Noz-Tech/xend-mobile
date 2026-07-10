@@ -50,6 +50,7 @@ val presentationModule = module {
             completeLogoutSession = get(),
             getCurrentSession = get(),
             getCurrentProfile = get(),
+            markOnboardingCompleted = get(),
         )
     }
     factory {
@@ -68,7 +69,12 @@ val presentationModule = module {
             realtimeSignals = get(),
         )
     }
-    factory { DailyRitualViewModel(getOverview = get()) }
+    factory {
+        DailyRitualViewModel(
+            getOverview = get(),
+            submitDailyRitual = get(),
+        )
+    }
     factory { ChallengesViewModel(getOverview = get()) }
     factory { GamesViewModel(getOverview = get()) }
     factory {

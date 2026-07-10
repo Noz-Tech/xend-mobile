@@ -3,6 +3,7 @@ package com.noztek.xend.app
 enum class StartupDestination {
     OFFLINE,
     WELCOME,
+    LOGIN,
     VERIFY_EMAIL,
     INCOMING_INVITE,
     OUTGOING_INVITE,

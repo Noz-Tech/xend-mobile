@@ -3,10 +3,13 @@ package com.noztek.xend.app
 import com.noztek.xend.core.network.ApiHealthChecker
 import com.noztek.xend.feature.auth.domain.model.PendingAuthFlowStep
 import com.noztek.xend.feature.auth.domain.usecase.GetCurrentSessionUseCase
+import com.noztek.xend.feature.auth.domain.usecase.HasAnyLocalUserProfileUseCase
 import com.noztek.xend.feature.auth.domain.usecase.GetPendingAuthFlowUseCase
 import com.noztek.xend.feature.device.domain.usecase.EnsureLocalSignalBootstrapUseCase
 import com.noztek.xend.feature.spacesetup.domain.model.AuthenticatedEntryDestination
 import com.noztek.xend.feature.spacesetup.domain.usecase.ResolveAuthenticatedEntryDestinationUseCase
+import com.noztek.xend.feature.welcome.domain.usecase.HasCompletedOnboardingUseCase
+import com.noztek.xend.feature.welcome.domain.usecase.MarkOnboardingCompletedUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -21,6 +24,9 @@ class StartupViewModel(
     private val ensureLocalSignalBootstrap: EnsureLocalSignalBootstrapUseCase,
     private val getCurrentSession: GetCurrentSessionUseCase,
     private val getPendingAuthFlow: GetPendingAuthFlowUseCase,
+    private val hasAnyLocalUserProfile: HasAnyLocalUserProfileUseCase,
+    private val hasCompletedOnboarding: HasCompletedOnboardingUseCase,
+    private val markOnboardingCompleted: MarkOnboardingCompletedUseCase,
     private val resolveAuthenticatedEntryDestination: ResolveAuthenticatedEntryDestinationUseCase,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -38,6 +44,14 @@ class StartupViewModel(
             _state.update { it.copy(isChecking = true, isApiOnline = null, destination = null) }
             val session = getCurrentSession()
             val pendingFlow = if (session == null) getPendingAuthFlow() else null
+            val storedOnboardingCompleted = hasCompletedOnboarding()
+            val inferredOnboardingCompleted = storedOnboardingCompleted ||
+                session != null ||
+                pendingFlow != null ||
+                hasAnyLocalUserProfile()
+            if (inferredOnboardingCompleted && !storedOnboardingCompleted) {
+                markOnboardingCompleted()
+            }
             val hasSession = session != null
             val online = healthChecker.isOnline()
             val authenticatedEntryDestination = if (hasSession && online) {
@@ -52,6 +66,7 @@ class StartupViewModel(
                 authenticatedEntryDestination == AuthenticatedEntryDestination.OUTGOING_INVITE -> StartupDestination.OUTGOING_INVITE
                 authenticatedEntryDestination == AuthenticatedEntryDestination.SPACE_SETUP -> StartupDestination.SPACE_SETUP
                 pendingFlow?.step == PendingAuthFlowStep.VERIFY_EMAIL && pendingFlow.email.isNotBlank() -> StartupDestination.VERIFY_EMAIL
+                inferredOnboardingCompleted -> StartupDestination.LOGIN
                 else -> StartupDestination.WELCOME
             }
             _state.update {
@@ -66,5 +81,9 @@ class StartupViewModel(
                 )
             }
         }
+    }
+
+    fun completeOnboarding() {
+        markOnboardingCompleted()
     }
 }

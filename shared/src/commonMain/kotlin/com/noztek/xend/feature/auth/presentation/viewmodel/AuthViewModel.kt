@@ -18,6 +18,7 @@ import com.noztek.xend.feature.auth.domain.usecase.RegisterWithEmailUseCase
 import com.noztek.xend.feature.auth.domain.usecase.ResendVerificationCodeUseCase
 import com.noztek.xend.feature.auth.domain.usecase.SavePendingEmailVerificationUseCase
 import com.noztek.xend.feature.auth.domain.usecase.VerifyEmailCodeUseCase
+import com.noztek.xend.feature.welcome.domain.usecase.MarkOnboardingCompletedUseCase
 import com.noztek.xend.feature.auth.presentation.state.AuthUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,6 +41,7 @@ class AuthViewModel(
     private val completeLogoutSession: CompleteLogoutSessionUseCase,
     private val getCurrentSession: GetCurrentSessionUseCase,
     private val getCurrentProfile: GetCurrentUserProfileUseCase,
+    private val markOnboardingCompleted: MarkOnboardingCompletedUseCase,
 ) {
     private val scope = defaultViewModelScope()
     private val _state = MutableStateFlow(AuthUiState())
@@ -178,6 +180,7 @@ class AuthViewModel(
                     password = password,
                     deviceName = currentDeviceName(),
                 )
+                markOnboardingCompleted()
                 savePendingEmailVerification(
                     email = registeredEmail,
                     resendAvailableAtEpochSeconds = resendAvailableAtEpochSeconds,
@@ -224,6 +227,7 @@ class AuthViewModel(
             _state.update { it.copy(isLoading = true, message = null, emailVerified = false) }
             runCatching { verifyEmailCodeAction(email, token) }
                 .onSuccess {
+                    markOnboardingCompleted()
                     clearPendingAuthFlow()
                     _state.update { it.copy(isLoading = false, message = "Email verified.", emailVerified = true) }
                 }
@@ -308,6 +312,7 @@ class AuthViewModel(
                     ),
                 )
             }.onSuccess { session ->
+                markOnboardingCompleted()
                 clearPendingAuthFlow()
                 completeLoginSession(session)
                 val profile = getCurrentProfile()

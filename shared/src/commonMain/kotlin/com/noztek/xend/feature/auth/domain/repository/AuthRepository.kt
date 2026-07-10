@@ -15,4 +15,5 @@ interface AuthRepository {
     suspend fun logout()
     suspend fun getCurrentSession(): AuthSessionModel?
     suspend fun getCurrentUserProfile(): UserProfileModel?
+    suspend fun hasAnyLocalUserProfile(): Boolean
 }

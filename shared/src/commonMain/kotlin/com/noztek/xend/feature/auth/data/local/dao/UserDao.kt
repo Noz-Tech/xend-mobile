@@ -32,4 +32,6 @@ class UserDao(
                 identifier = it.identifier,
             )
         }
+
+    fun hasAnyUserProfile(): Boolean = db.userProfileQueries.countUserProfiles().executeAsOne() > 0L
 }

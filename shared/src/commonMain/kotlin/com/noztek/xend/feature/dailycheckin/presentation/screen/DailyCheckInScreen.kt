@@ -396,7 +396,7 @@ private fun TodayCheckInCard(
                     )
                 }
                 StatusChip(
-                    text = if (overview.bothCheckedIn) "Both checked in" else "Waiting for both",
+                    text = overview.pendingCheckInLabel(),
                     palette = palette,
                     positive = overview.bothCheckedIn,
                 )
@@ -484,6 +484,15 @@ private fun TodayCheckInCard(
     }
 }
 
+private fun DailyCheckInOverviewModel.pendingCheckInLabel(): String {
+    return when {
+        bothCheckedIn -> "Both checked in"
+        user.checkedIn && !partner.checkedIn -> "Waiting for ${partner.title}"
+        !user.checkedIn && partner.checkedIn -> "Waiting for you"
+        else -> "Waiting for both"
+    }
+}
+
 @Composable
 private fun MemberColumn(
     member: DailyCheckInMemberModel,
@@ -513,20 +522,6 @@ private fun MemberColumn(
                         text = member.initials,
                         style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
                         color = palette.ink,
-                    )
-                }
-            }
-            Surface(
-                modifier = Modifier.size(22.dp),
-                shape = androidx.compose.foundation.shape.CircleShape,
-                color = palette.primary,
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Heroicons.Outline.Heart,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(11.dp),
                     )
                 }
             }

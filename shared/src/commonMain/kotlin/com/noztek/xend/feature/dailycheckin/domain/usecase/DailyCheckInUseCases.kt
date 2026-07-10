@@ -51,8 +51,8 @@ class GetDailyCheckInOverviewUseCase(
             ?.takeIf { it.isNotBlank() }
             ?: "Partner"
 
-        val completedDaysCount = status.completedDaysCount
-        val nextMilestone = milestoneSpecs.firstOrNull { it.days > completedDaysCount } ?: milestoneSpecs.last()
+        val streakDays = status.currentStreak
+        val nextMilestone = milestoneSpecs.firstOrNull { it.days > streakDays } ?: milestoneSpecs.last()
         val rewardPoints = status.dailyRewardPoints.takeIf { it > 0 } ?: DefaultDailyRewardPoints
 
         return DailyCheckInOverviewModel(
@@ -82,14 +82,14 @@ class GetDailyCheckInOverviewUseCase(
                     days = spec.days,
                     bonusPoints = spec.bonusPoints,
                     status = when {
-                        spec.days < completedDaysCount -> DailyCheckInMilestoneStatus.Reached
-                        spec.days == completedDaysCount -> DailyCheckInMilestoneStatus.Current
+                        spec.days < streakDays -> DailyCheckInMilestoneStatus.Reached
+                        spec.days == streakDays -> DailyCheckInMilestoneStatus.Current
                         else -> DailyCheckInMilestoneStatus.Locked
                     },
                 )
             },
             nextMilestoneDays = nextMilestone.days,
-            nextMilestoneRemainingDays = (nextMilestone.days - completedDaysCount).coerceAtLeast(0),
+            nextMilestoneRemainingDays = (nextMilestone.days - streakDays).coerceAtLeast(0),
         )
     }
 

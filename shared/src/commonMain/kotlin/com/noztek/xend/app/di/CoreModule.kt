@@ -37,6 +37,9 @@ fun coreModule(appConfig: AppConfig) = module {
             ensureLocalSignalBootstrap = get(),
             getCurrentSession = get(),
             getPendingAuthFlow = get(),
+            hasAnyLocalUserProfile = get(),
+            hasCompletedOnboarding = get(),
+            markOnboardingCompleted = get(),
             resolveAuthenticatedEntryDestination = get(),
         )
     }

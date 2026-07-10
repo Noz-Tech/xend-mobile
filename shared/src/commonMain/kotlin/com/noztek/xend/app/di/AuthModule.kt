@@ -21,6 +21,7 @@ import com.noztek.xend.feature.auth.domain.usecase.ResendVerificationUseCase
 import com.noztek.xend.feature.auth.domain.usecase.SavePendingEmailVerificationUseCase
 import com.noztek.xend.feature.auth.domain.usecase.VerifyEmailCodeUseCase
 import com.noztek.xend.feature.auth.domain.usecase.VerifyEmailUseCase
+import com.noztek.xend.feature.auth.domain.usecase.HasAnyLocalUserProfileUseCase
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
@@ -50,6 +51,7 @@ val authModule = module {
     factory { LogoutUseCase(get()) }
     factory { GetCurrentSessionUseCase(get()) }
     factory { GetCurrentUserProfileUseCase(get()) }
+    factory { HasAnyLocalUserProfileUseCase(get()) }
     factory { GetPendingAuthFlowUseCase(get()) }
     factory { SavePendingEmailVerificationUseCase(get()) }
     factory { ClearPendingAuthFlowUseCase(get()) }

@@ -25,5 +25,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 selectUserProfile:
 SELECT * FROM UserProfile WHERE user_id = ?;
 
+countUserProfiles:
+SELECT COUNT(*) FROM UserProfile;
+
 deleteUserProfile:
 DELETE FROM UserProfile WHERE user_id = ?;

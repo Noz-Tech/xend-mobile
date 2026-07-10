@@ -109,4 +109,6 @@ class AuthRepositoryImpl(
         val userId = authSessionDao.getCurrentSession()?.userId ?: return null
         return userDao.getUserProfile(userId)
     }
+
+    override suspend fun hasAnyLocalUserProfile(): Boolean = userDao.hasAnyUserProfile()
 }

@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -46,11 +47,13 @@ import com.noztek.xend.feature.message.presentation.screen.MessageScreen
 import com.noztek.xend.feature.outgoinginvite.presentation.screen.OutgoingInviteScreen
 import com.noztek.xend.feature.settings.presentation.screen.SettingsScreen
 import com.noztek.xend.feature.auth.presentation.viewmodel.AuthViewModel
+import com.noztek.xend.feature.space.domain.usecase.GetDefaultRelationshipSpaceUseCase
 import com.noztek.xend.feature.space.presentation.screen.SpaceScreen
 import com.noztek.xend.feature.space.presentation.screen.HiddenSpacesScreen
 import com.noztek.xend.feature.spacesetup.presentation.screen.SpaceSetupScreen
 import com.noztek.xend.feature.welcome.presentation.screen.OfflineScreen
 import com.noztek.xend.feature.welcome.presentation.screen.WelcomeScreen
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 private object AppRoutes {
@@ -85,12 +88,23 @@ fun AppNavHost(
 ) {
     val navController = rememberNavController()
     val authViewModel = koinInject<AuthViewModel>()
+    val getDefaultRelationshipSpace = koinInject<GetDefaultRelationshipSpaceUseCase>()
     val sessionEventBus = koinInject<SessionEventBus>()
+    val scope = rememberCoroutineScope()
     var activeConversationId by rememberSaveable { mutableStateOf("") }
 
     fun openChat() {
-        if (activeConversationId.isBlank()) return
-        navController.navigate(AppRoutes.Message)
+        scope.launch {
+            val resolvedConversationId = activeConversationId.ifBlank {
+                getDefaultRelationshipSpace()?.conversationId.orEmpty()
+            }
+            if (resolvedConversationId.isBlank()) return@launch
+
+            activeConversationId = resolvedConversationId
+            navController.navigate(AppRoutes.Message) {
+                launchSingleTop = true
+            }
+        }
     }
 
     fun openMain() {
@@ -164,6 +178,12 @@ fun AppNavHost(
                         }
                     }
 
+                    StartupDestination.LOGIN -> {
+                        navController.navigate(AppRoutes.Login) {
+                            popUpTo(AppRoutes.Startup) { inclusive = true }
+                        }
+                    }
+
                     StartupDestination.VERIFY_EMAIL -> {
                         val email = state.pendingVerificationEmail?.trim().orEmpty()
                         if (email.isBlank()) {
@@ -228,7 +248,9 @@ fun AppNavHost(
         composable(AppRoutes.Welcome) {
             WelcomeScreen(
                 onGetStarted = {
-                    navController.navigate(AuthRoutes.Register) {
+                    startupViewModel.completeOnboarding()
+                    navController.navigate(AppRoutes.AuthGraph) {
+                        popUpTo(AppRoutes.Welcome) { inclusive = true }
                         launchSingleTop = true
                     }
                 },

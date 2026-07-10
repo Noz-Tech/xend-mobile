@@ -39,3 +39,9 @@ class GetCurrentUserProfileUseCase(
 ) {
     suspend operator fun invoke(): UserProfileModel? = repository.getCurrentUserProfile()
 }
+
+class HasAnyLocalUserProfileUseCase(
+    private val repository: AuthRepository,
+) {
+    suspend operator fun invoke(): Boolean = repository.hasAnyLocalUserProfile()
+}
