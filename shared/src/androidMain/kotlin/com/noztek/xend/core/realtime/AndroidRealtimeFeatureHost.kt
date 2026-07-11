@@ -62,6 +62,18 @@ class AndroidRealtimeFeatureHost(
                         bumpSpaceTick()
                     }
 
+                    "challenge_received",
+                    "challenge_accepted",
+                    "challenge_declined",
+                    -> {
+                        bumpSpaceTick()
+                    }
+
+                    "challenge_completed" -> {
+                        runCatching { syncRelationshipSpaces() }
+                        bumpSpaceTick()
+                    }
+
                     "message_created",
                     "message_receipt_updated",
                     "message_reaction_updated",

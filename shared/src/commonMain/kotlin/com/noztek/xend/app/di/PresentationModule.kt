@@ -75,7 +75,17 @@ val presentationModule = module {
             submitDailyRitual = get(),
         )
     }
-    factory { ChallengesViewModel(getOverview = get()) }
+    factory {
+        ChallengesViewModel(
+            getOverview = get(),
+            sendChallenge = get(),
+            acceptChallenge = get(),
+            declineChallenge = get(),
+            completeChallenge = get(),
+            getSubmissionImage = get(),
+            realtimeSignals = get(),
+        )
+    }
     factory { GamesViewModel(getOverview = get()) }
     factory {
         SettingsViewModel(

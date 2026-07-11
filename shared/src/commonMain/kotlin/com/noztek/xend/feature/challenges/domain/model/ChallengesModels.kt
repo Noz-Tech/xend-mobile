@@ -1,29 +1,53 @@
 package com.noztek.xend.feature.challenges.domain.model
 
+import androidx.compose.ui.graphics.ImageBitmap
+
 data class ChallengesOverviewModel(
-    val dailyChallenge: DailyChallengeModel,
-    val ideas: List<ChallengeIdeaModel>,
-    val progressMessage: String,
+    val relationshipSpaceId: String,
+    val partnerName: String,
+    val templates: List<ChallengeTemplateModel>,
+    val incoming: List<ChallengeAssignmentModel>,
+    val sent: List<ChallengeAssignmentModel>,
+    val history: List<ChallengeAssignmentModel>,
 )
 
-data class DailyChallengeModel(
+data class ChallengeTemplateModel(
+    val templateId: String,
+    val slug: String,
     val title: String,
     val description: String,
-    val completedCount: Int,
-    val totalCount: Int,
-    val bondPoints: Int,
-    val hoursLeft: Int,
-)
-
-data class ChallengeIdeaModel(
-    val id: String,
-    val title: String,
-    val description: String,
-    val bondPoints: Int,
     val category: ChallengeCategory,
-    val audience: ChallengeAudience,
-    val accent: ChallengeAccent,
-    val actionStyle: ChallengeActionStyle,
+    val submissionType: ChallengeSubmissionType,
+    val rewardPoints: Int,
+    val expiryLabel: String?,
+)
+
+data class ChallengeAssignmentModel(
+    val challengeId: String,
+    val templateId: String,
+    val title: String,
+    val description: String,
+    val category: ChallengeCategory,
+    val submissionType: ChallengeSubmissionType,
+    val senderDisplayName: String,
+    val receiverDisplayName: String,
+    val rewardPoints: Int,
+    val note: String?,
+    val status: ChallengeStatus,
+    val assignedLevel: Int,
+    val expiresAtLabel: String?,
+    val createdAtLabel: String,
+    val canAccept: Boolean,
+    val canDecline: Boolean,
+    val canComplete: Boolean,
+    val submittedByMe: Boolean,
+    val submissionTextResponse: String?,
+    val hasSubmissionImage: Boolean,
+)
+
+data class ChallengeSubmissionImageModel(
+    val challengeId: String,
+    val bitmap: ImageBitmap,
 )
 
 enum class ChallengeAudience {
@@ -33,19 +57,24 @@ enum class ChallengeAudience {
 
 enum class ChallengeCategory {
     All,
-    Romantic,
-    Fun,
-    Supportive,
+    Soft,
+    Desire,
+    Private,
+    Bold,
+    Devotion,
 }
 
-enum class ChallengeAccent {
-    Sunrise,
-    Lavender,
-    Mint,
-    Rose,
+enum class ChallengeSubmissionType {
+    None,
+    Text,
+    Image,
 }
 
-enum class ChallengeActionStyle {
-    Primary,
-    Add,
+enum class ChallengeStatus {
+    Sent,
+    Accepted,
+    Completed,
+    Declined,
+    Expired,
+    Cancelled,
 }

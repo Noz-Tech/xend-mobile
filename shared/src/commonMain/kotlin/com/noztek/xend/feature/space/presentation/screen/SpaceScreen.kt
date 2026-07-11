@@ -949,7 +949,7 @@ private fun QuickActionsSection(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        actions.chunked(3).forEach { rowActions ->
+        actions.chunked(4).forEach { rowActions ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -961,7 +961,7 @@ private fun QuickActionsSection(
                         modifier = Modifier.weight(1f),
                     )
                 }
-                repeat(3 - rowActions.size) {
+                repeat(4 - rowActions.size) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }

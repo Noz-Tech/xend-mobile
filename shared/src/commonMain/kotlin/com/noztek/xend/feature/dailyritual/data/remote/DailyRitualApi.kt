@@ -18,6 +18,7 @@ import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.utils.io.core.ByteReadPacket
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -101,17 +102,16 @@ class DailyRitualApi(
                 setBody(
                     MultiPartFormDataContent(
                         formData {
-                            append(
+                            appendInput(
                                 key = "image",
-                                value = image.bytes,
                                 headers = Headers.build {
+                                    append(HttpHeaders.ContentDisposition, "filename=\"${image.fileName}\"")
                                     append(HttpHeaders.ContentType, image.mimeType)
-                                    append(
-                                        HttpHeaders.ContentDisposition,
-                                        "form-data; name=\"image\"; filename=\"${image.fileName}\"",
-                                    )
                                 },
-                            )
+                                size = image.bytes.size.toLong(),
+                            ) {
+                                ByteReadPacket(image.bytes)
+                            }
                         },
                     ),
                 )
