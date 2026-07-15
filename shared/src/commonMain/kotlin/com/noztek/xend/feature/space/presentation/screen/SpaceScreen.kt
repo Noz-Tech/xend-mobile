@@ -809,7 +809,6 @@ private fun HeroMoodChip(
                 name = "You",
                 mood = mood.userMood,
                 iconTint = palette.lavender,
-                bubbleColor = palette.lavenderSoft,
                 palette = palette,
                 modifier = Modifier
                     .weight(1f)
@@ -844,7 +843,6 @@ private fun HeroMoodChip(
                 name = partnerName,
                 mood = mood.partnerMood,
                 iconTint = palette.primary,
-                bubbleColor = palette.peachSoft,
                 palette = palette,
                 modifier = Modifier
                     .weight(1f)
@@ -921,25 +919,25 @@ private fun MoodChipSide(
     name: String,
     mood: String,
     iconTint: Color,
-    bubbleColor: Color,
     palette: XendPalette,
     modifier: Modifier = Modifier,
     trailing: @Composable (() -> Unit)? = null,
 ) {
+    val moodEmoji = mood.substringBefore(" ").takeIf { it != mood && it.isNotBlank() } ?: "🙂"
+    val moodLabel = mood.substringAfter(" ", mood).takeIf { it.isNotBlank() } ?: mood
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier.size(34.dp),
+            modifier = Modifier.size(24.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = Heroicons.Outline.FaceSmile,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(17.dp),
+            Text(
+                text = moodEmoji,
+                style = MaterialTheme.typography.titleMedium,
             )
         }
         Text(
@@ -948,7 +946,7 @@ private fun MoodChipSide(
             color = palette.ink,
         )
         Text(
-            text = mood,
+            text = moodLabel,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
             color = iconTint,
         )
