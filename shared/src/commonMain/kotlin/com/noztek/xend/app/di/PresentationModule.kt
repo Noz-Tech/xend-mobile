@@ -90,6 +90,8 @@ val presentationModule = module {
     factory {
         SettingsViewModel(
             getCurrentUserProfile = get(),
+            getDefaultRelationshipSpace = get(),
+            getDefaultSpaceHero = get(),
             logout = get(),
             clearPendingAuthFlow = get(),
             completeLogoutSession = get(),

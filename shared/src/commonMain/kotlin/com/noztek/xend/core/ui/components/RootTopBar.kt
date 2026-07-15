@@ -29,6 +29,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.Bell
+import com.composables.icons.heroicons.outline.Cog6Tooth
 import com.composables.icons.heroicons.outline.EllipsisVertical
 import com.composables.icons.heroicons.outline.MagnifyingGlass
 import com.composables.icons.heroicons.solid.UserCircle
@@ -50,6 +51,7 @@ fun RootTopBar(
     showNotification: Boolean = false,
     showSearch: Boolean = true,
     showMenu: Boolean = true,
+    showSettings: Boolean = false,
     showLeading: Boolean = true,
     containerColor: Color = Color.Transparent,
     contentColor: Color = MaterialTheme.colorScheme.onBackground,
@@ -117,6 +119,14 @@ fun RootTopBar(
                         Icon(
                             imageVector = Heroicons.Outline.Bell,
                             contentDescription = "Notifications",
+                        )
+                    }
+                }
+                if (showSettings) {
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(
+                            imageVector = Heroicons.Outline.Cog6Tooth,
+                            contentDescription = "Settings",
                         )
                     }
                 }

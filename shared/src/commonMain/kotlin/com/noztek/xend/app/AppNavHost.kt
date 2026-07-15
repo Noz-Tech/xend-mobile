@@ -45,6 +45,7 @@ import com.noztek.xend.feature.invites.presentation.screen.InvitePartnerScreen
 import com.noztek.xend.feature.invites.presentation.screen.InvitesScreen
 import com.noztek.xend.feature.message.presentation.screen.MessageScreen
 import com.noztek.xend.feature.outgoinginvite.presentation.screen.OutgoingInviteScreen
+import com.noztek.xend.feature.settings.presentation.screen.CoupleSettingsScreen
 import com.noztek.xend.feature.settings.presentation.screen.SettingsScreen
 import com.noztek.xend.feature.auth.presentation.viewmodel.AuthViewModel
 import com.noztek.xend.feature.space.domain.usecase.GetDefaultRelationshipSpaceUseCase
@@ -74,6 +75,7 @@ private object AppRoutes {
     const val Invites = "invites"
     const val HiddenSpaces = "hidden-spaces"
     const val Settings = "settings"
+    const val CoupleSettings = "couple-settings"
     const val Message = "message"
 }
 
@@ -376,7 +378,8 @@ fun AppNavHost(
                         showLogo = true,
                         showNotification = true,
                         showSearch = false,
-                        showMenu = true,
+                        showMenu = false,
+                        showSettings = true,
                     )
                 },
                 bottomBar = {
@@ -510,18 +513,29 @@ fun AppNavHost(
             AppRouteScaffold(
                 topBar = {
                     BackTopBar(
-                        title = "Settings",
+                        title = "",
                         onBackClick = navController::popBackStack,
                     )
                 },
             ) {
                 SettingsScreen(
+                    onCoupleSettingsClick = { navController.navigate(AppRoutes.CoupleSettings) },
                     onLoggedOut = {
                         startupViewModel.checkApiHealth()
                         navController.navigate(AppRoutes.Startup) {
                             popUpTo(AppRoutes.Main) { inclusive = true }
                         }
                     },
+                )
+            }
+        }
+
+        composable(AppRoutes.CoupleSettings) {
+            AppRouteScaffold(
+                topBar = {},
+            ) {
+                CoupleSettingsScreen(
+                    onBackClick = navController::popBackStack,
                 )
             }
         }
