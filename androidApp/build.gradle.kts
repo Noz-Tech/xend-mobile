@@ -8,7 +8,7 @@ plugins {
 
 kotlin {
     compilerOptions {
-        jvmTarget = JvmTarget.JVM_11
+        jvmTarget = JvmTarget.JVM_21
     }
 }
 dependencies {
@@ -39,9 +39,8 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
-        versionName = "1.0"
-        buildConfigField("String", "EMULATOR_API_BASE_URL", "\"http://10.0.2.2:8080\"")
-        buildConfigField("String", "DEVICE_API_BASE_URL", "\"http://192.168.1.6:8080\"")
+        versionName = "0.1.0"
+        buildConfigField("String", "API_BASE_URL", "\"https://api.xend.space\"")
     }
     packaging {
         resources {
@@ -55,7 +54,7 @@ android {
     }
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 }

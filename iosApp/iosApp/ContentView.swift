@@ -3,7 +3,7 @@ import SwiftUI
 import LibSignalClient
 import Shared
 
-private let devApiBaseUrl = "http://192.168.1.6:8080"
+private let apiBaseUrl = "https://api.xend.space"
 
 final class IOSSignalBootstrapProvider: SignalBootstrapProvider {
     func create() -> SignalBootstrap {
@@ -21,7 +21,7 @@ final class IOSSignalBootstrapProvider: SignalBootstrapProvider {
 struct ComposeView: UIViewControllerRepresentable {
     func makeUIViewController(context: Self.Context) -> UIViewController {
         return MainViewControllerKt.MainViewController(
-            appConfig: AppConfig(apiBaseUrl: devApiBaseUrl),
+            appConfig: AppConfig(apiBaseUrl: apiBaseUrl),
             signalBootstrapProvider: IOSSignalBootstrapProvider()
         )
     }

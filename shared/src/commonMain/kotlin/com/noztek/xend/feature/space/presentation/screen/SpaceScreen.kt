@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -34,7 +35,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,11 +46,15 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.CalendarDays
 import com.composables.icons.heroicons.outline.ChatBubbleLeftRight
@@ -77,6 +84,13 @@ private data class MoodPreviewModel(
     val userMood: String,
     val partnerMood: String,
 )
+
+private data class MoodOption(
+    val emoji: String,
+    val label: String,
+) {
+    val display: String = "$emoji $label"
+}
 
 private data class PetPreviewModel(
     val petName: String,
@@ -117,6 +131,18 @@ private val previewContent = SpacePreviewContent(
     ritualPrompt = "Share one thing you're looking forward to this week.",
 )
 
+private val moodOptions = listOf(
+    MoodOption("😊", "Happy"),
+    MoodOption("🥰", "Loved"),
+    MoodOption("😌", "Calm"),
+    MoodOption("🤩", "Excited"),
+    MoodOption("🫦", "Horny"),
+    MoodOption("😴", "Tired"),
+    MoodOption("😔", "Sad"),
+    MoodOption("😤", "Stressed"),
+    MoodOption("🤒", "Unwell"),
+)
+
 private val mockHero = SpaceHeroModel(
     userName = "Johnny",
     partnerName = "Antonette",
@@ -138,6 +164,11 @@ fun SpaceScreen(
     val palette = XendTheme.palette
     val listState = rememberLazyListState()
     val conversationId = defaultSpace?.conversationId.orEmpty()
+    var isMoodPickerOpen by remember { mutableStateOf(false) }
+    var selectedMood by remember { mutableStateOf(previewContent.mood.userMood) }
+    val mood = remember(selectedMood) {
+        previewContent.mood.copy(userMood = selectedMood)
+    }
     val heroCollapseProgress by remember(listState) {
         derivedStateOf {
             when {
@@ -229,11 +260,37 @@ fun SpaceScreen(
         }
 
         item {
-            HeroMoodChip(
-                partnerName = hero.partnerName,
-                mood = previewContent.mood,
-                palette = palette,
-            )
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val popupOffsetY = with(LocalDensity.current) { 48.dp.roundToPx() }
+
+                HeroMoodChip(
+                    partnerName = hero.partnerName,
+                    mood = mood,
+                    palette = palette,
+                    isPickerOpen = isMoodPickerOpen,
+                    onTogglePicker = { isMoodPickerOpen = !isMoodPickerOpen },
+                )
+                if (isMoodPickerOpen) {
+                    Popup(
+                        alignment = Alignment.TopStart,
+                        offset = IntOffset(0, popupOffsetY),
+                        onDismissRequest = { isMoodPickerOpen = false },
+                        properties = PopupProperties(focusable = true),
+                    ) {
+                        Box(modifier = Modifier.width(maxWidth)) {
+                            MoodSelectionCard(
+                                selectedMood = selectedMood,
+                                options = moodOptions,
+                                palette = palette,
+                                onMoodSelected = {
+                                    selectedMood = it.display
+                                    isMoodPickerOpen = false
+                                },
+                            )
+                        }
+                    }
+                }
+            }
         }
         item {
             CoupleLevelCard(
@@ -729,6 +786,8 @@ private fun HeroMoodChip(
     partnerName: String,
     mood: MoodPreviewModel,
     palette: XendPalette,
+    isPickerOpen: Boolean,
+    onTogglePicker: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -753,12 +812,23 @@ private fun HeroMoodChip(
                     .weight(1f)
                     .padding(end = 8.dp),
                 trailing = {
-                    Icon(
-                        imageVector = Heroicons.Outline.ChevronDown,
-                        contentDescription = null,
-                        tint = palette.mutedInk,
-                        modifier = Modifier.size(18.dp),
-                    )
+                    Surface(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = onTogglePicker),
+                        color = if (isPickerOpen) palette.primarySoft else Color.Transparent,
+                        shape = CircleShape,
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Heroicons.Outline.ChevronDown,
+                                contentDescription = "Choose mood",
+                                tint = if (isPickerOpen) palette.primary else palette.mutedInk,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
                 },
             )
             Box(
@@ -778,6 +848,68 @@ private fun HeroMoodChip(
                     .padding(start = 8.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun MoodSelectionCard(
+    selectedMood: String,
+    options: List<MoodOption>,
+    palette: XendPalette,
+    onMoodSelected: (MoodOption) -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = palette.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "How are you feeling?",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                color = palette.ink,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                options.forEach { option ->
+                    MoodEmojiButton(
+                        option = option,
+                        selected = option.display == selectedMood,
+                        palette = palette,
+                        onClick = { onMoodSelected(option) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MoodEmojiButton(
+    option: MoodOption,
+    selected: Boolean,
+    palette: XendPalette,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(34.dp)
+            .clip(CircleShape)
+            .background(if (selected) palette.primarySoft else Color.Transparent)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = option.emoji,
+            style = MaterialTheme.typography.titleMedium,
+        )
     }
 }
 
