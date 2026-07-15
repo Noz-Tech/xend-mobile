@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.emptyFlow
 interface RealtimeFeatureSignals {
     val inviteRefreshTick: StateFlow<Long>
     val spaceRefreshTick: StateFlow<Long>
+    val moodRefreshTick: StateFlow<Long>
     val messageEvents: Flow<RealtimeEvent>
 }
 
@@ -16,5 +17,6 @@ class NoopRealtimeFeatureSignals : RealtimeFeatureSignals {
 
     override val inviteRefreshTick: StateFlow<Long> = tick
     override val spaceRefreshTick: StateFlow<Long> = tick
+    override val moodRefreshTick: StateFlow<Long> = tick
     override val messageEvents: Flow<RealtimeEvent> = emptyFlow()
 }

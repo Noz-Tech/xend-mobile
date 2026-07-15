@@ -2,8 +2,10 @@ package com.noztek.xend.feature.space.presentation.viewmodel
 
 import com.noztek.xend.core.presentation.defaultViewModelScope
 import com.noztek.xend.core.realtime.RealtimeFeatureSignals
+import com.noztek.xend.feature.space.domain.usecase.GetCurrentSpaceMoodsUseCase
 import com.noztek.xend.feature.space.domain.usecase.GetDefaultSpaceHeroUseCase
 import com.noztek.xend.feature.space.domain.usecase.GetDefaultRelationshipSpaceUseCase
+import com.noztek.xend.feature.space.domain.usecase.SetSpaceMoodUseCase
 import com.noztek.xend.feature.space.domain.usecase.SyncRelationshipSpacesUseCase
 import com.noztek.xend.feature.space.presentation.state.SpaceUiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +17,8 @@ import kotlinx.coroutines.launch
 class SpaceViewModel(
     private val getDefaultRelationshipSpace: GetDefaultRelationshipSpaceUseCase,
     private val getDefaultSpaceHero: GetDefaultSpaceHeroUseCase,
+    private val getCurrentSpaceMoods: GetCurrentSpaceMoodsUseCase,
+    private val setSpaceMood: SetSpaceMoodUseCase,
     private val syncRelationshipSpaces: SyncRelationshipSpacesUseCase,
     private val realtimeSignals: RealtimeFeatureSignals,
 ) {
@@ -28,6 +32,11 @@ class SpaceViewModel(
         scope.launch {
             realtimeSignals.spaceRefreshTick.collect {
                 if (it > 0) refresh()
+            }
+        }
+        scope.launch {
+            realtimeSignals.moodRefreshTick.collect {
+                if (it > 0) refreshMoods()
             }
         }
     }
@@ -54,6 +63,43 @@ class SpaceViewModel(
         }
     }
 
+    fun setMood(moodKey: String, emoji: String, label: String) {
+        val spaceID = _state.value.defaultSpace?.relationshipSpaceId ?: return
+        if (_state.value.isSavingMood) return
+
+        scope.launch {
+            _state.update { it.copy(isSavingMood = true, message = null) }
+            runCatching { setSpaceMood(spaceID, moodKey, emoji, label) }
+                .onSuccess { moods ->
+                    _state.update {
+                        it.copy(
+                            moods = moods,
+                            isSavingMood = false,
+                            message = null,
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _state.update {
+                        it.copy(
+                            isSavingMood = false,
+                            message = error.message ?: "Failed to update mood",
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun refreshMoods() {
+        val spaceID = _state.value.defaultSpace?.relationshipSpaceId ?: return
+        scope.launch {
+            runCatching { getCurrentSpaceMoods(spaceID) }
+                .onSuccess { moods ->
+                    _state.update { it.copy(moods = moods) }
+                }
+        }
+    }
+
     private suspend fun loadSpaceState(
         clearMessage: Boolean,
     ) {
@@ -66,11 +112,15 @@ class SpaceViewModel(
         runCatching { getDefaultRelationshipSpace() }
             .onSuccess { defaultSpace ->
                 val hero = getDefaultSpaceHero(defaultSpace)
+                val moods = defaultSpace
+                    ?.let { space -> runCatching { getCurrentSpaceMoods(space.relationshipSpaceId) }.getOrDefault(emptyList()) }
+                    .orEmpty()
                 _state.update {
                     it.copy(
                         isLoading = false,
                         defaultSpace = defaultSpace,
                         hero = hero,
+                        moods = moods,
                     )
                 }
             }

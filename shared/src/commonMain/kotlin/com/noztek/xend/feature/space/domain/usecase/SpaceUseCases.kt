@@ -8,6 +8,7 @@ import com.noztek.xend.feature.space.data.local.dao.RelationshipSpaceMemberLocal
 import com.noztek.xend.feature.space.data.remote.SpaceApi
 import com.noztek.xend.feature.space.domain.model.RelationshipSpaceCardModel
 import com.noztek.xend.feature.space.domain.model.SpaceHeroModel
+import com.noztek.xend.feature.space.domain.model.SpaceMoodModel
 import com.noztek.xend.feature.space.domain.repository.RelationshipSpaceRepository
 import kotlin.time.Clock
 
@@ -53,6 +54,20 @@ class GetHiddenRelationshipSpacesUseCase(
     private val repository: RelationshipSpaceRepository,
 ) {
     suspend operator fun invoke(): List<RelationshipSpaceCardModel> = repository.getHiddenSpaces()
+}
+
+class GetCurrentSpaceMoodsUseCase(
+    private val repository: RelationshipSpaceRepository,
+) {
+    suspend operator fun invoke(spaceId: String): List<SpaceMoodModel> = repository.getCurrentMoods(spaceId)
+}
+
+class SetSpaceMoodUseCase(
+    private val repository: RelationshipSpaceRepository,
+) {
+    suspend operator fun invoke(spaceId: String, moodKey: String, emoji: String, label: String): List<SpaceMoodModel> {
+        return repository.setMood(spaceId, moodKey, emoji, label)
+    }
 }
 
 class SetDefaultRelationshipSpaceUseCase(

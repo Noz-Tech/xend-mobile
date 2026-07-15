@@ -22,10 +22,12 @@ class AndroidRealtimeFeatureHost(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val _inviteRefreshTick = MutableStateFlow(0L)
     private val _spaceRefreshTick = MutableStateFlow(0L)
+    private val _moodRefreshTick = MutableStateFlow(0L)
     private val _messageEvents = MutableSharedFlow<RealtimeEvent>(extraBufferCapacity = 32)
 
     override val inviteRefreshTick: StateFlow<Long> = _inviteRefreshTick
     override val spaceRefreshTick: StateFlow<Long> = _spaceRefreshTick
+    override val moodRefreshTick: StateFlow<Long> = _moodRefreshTick
     override val messageEvents: SharedFlow<RealtimeEvent> = _messageEvents.asSharedFlow()
 
     fun start() {
@@ -60,6 +62,10 @@ class AndroidRealtimeFeatureHost(
                     "daily_checkin_updated" -> {
                         runCatching { syncRelationshipSpaces() }
                         bumpSpaceTick()
+                    }
+
+                    "relationship_mood_updated" -> {
+                        bumpMoodTick()
                     }
 
                     "challenge_received",
@@ -98,5 +104,9 @@ class AndroidRealtimeFeatureHost(
 
     private fun bumpSpaceTick() {
         _spaceRefreshTick.value = _spaceRefreshTick.value + 1
+    }
+
+    private fun bumpMoodTick() {
+        _moodRefreshTick.value = _moodRefreshTick.value + 1
     }
 }

@@ -68,6 +68,30 @@ data class SpaceMemberDto(
 )
 
 @Serializable
+data class SpaceMoodListResponseDto(
+    val items: List<SpaceMoodDto> = emptyList(),
+)
+
+@Serializable
+data class SpaceMoodDto(
+    @SerialName("relationship_space_id") val relationshipSpaceId: String,
+    @SerialName("user_id") val userId: String,
+    @SerialName("display_name") val displayName: String,
+    @SerialName("mood_key") val moodKey: String? = null,
+    val emoji: String? = null,
+    val label: String? = null,
+    @SerialName("updated_at") val updatedAt: Long? = null,
+    @SerialName("is_me") val isMe: Boolean = false,
+)
+
+@Serializable
+data class SetSpaceMoodRequestDto(
+    @SerialName("mood_key") val moodKey: String,
+    val emoji: String,
+    val label: String,
+)
+
+@Serializable
 data class LevelProgressDto(
     @SerialName("relationship_space_id") val relationshipSpaceId: String,
     val level: Int,
@@ -100,6 +124,22 @@ class SpaceApi(
         execute<SpaceMembersResponseDto> {
             client.get(url("/v1/relationship-spaces/$spaceId/members")) {
                 header(HttpHeaders.Authorization, "Bearer $accessToken")
+            }
+        }.items
+
+    suspend fun getCurrentMoods(accessToken: String, spaceId: String): List<SpaceMoodDto> =
+        execute<SpaceMoodListResponseDto> {
+            client.get(url("/v1/relationship-spaces/$spaceId/moods")) {
+                header(HttpHeaders.Authorization, "Bearer $accessToken")
+            }
+        }.items
+
+    suspend fun setMood(accessToken: String, spaceId: String, moodKey: String, emoji: String, label: String): List<SpaceMoodDto> =
+        execute<SpaceMoodListResponseDto> {
+            client.post(url("/v1/relationship-spaces/$spaceId/moods")) {
+                header(HttpHeaders.Authorization, "Bearer $accessToken")
+                contentType(ContentType.Application.Json)
+                setBody(SetSpaceMoodRequestDto(moodKey = moodKey, emoji = emoji, label = label))
             }
         }.items
 

@@ -4,7 +4,9 @@ import com.noztek.xend.feature.auth.data.local.dao.AuthSessionDao
 import com.noztek.xend.feature.space.data.local.dao.RelationshipSpaceCardLocal
 import com.noztek.xend.feature.space.data.local.dao.RelationshipSpaceDao
 import com.noztek.xend.feature.space.data.remote.SpaceApi
+import com.noztek.xend.feature.space.data.remote.SpaceMoodDto
 import com.noztek.xend.feature.space.domain.model.RelationshipSpaceCardModel
+import com.noztek.xend.feature.space.domain.model.SpaceMoodModel
 import com.noztek.xend.feature.space.domain.repository.RelationshipSpaceRepository
 
 class RelationshipSpaceRepositoryImpl(
@@ -15,6 +17,16 @@ class RelationshipSpaceRepositoryImpl(
     override suspend fun getDefaultSpace(): RelationshipSpaceCardModel? = dao.getDefaultSpaceCard()?.let(::toModel)
 
     override suspend fun getHiddenSpaces(): List<RelationshipSpaceCardModel> = dao.getHiddenSpaceCards().map(::toModel)
+
+    override suspend fun getCurrentMoods(spaceId: String): List<SpaceMoodModel> {
+        val session = requireNotNull(authSessionDao.getCurrentSession()) { "No active session" }
+        return api.getCurrentMoods(session.accessToken, spaceId).map(::toMoodModel)
+    }
+
+    override suspend fun setMood(spaceId: String, moodKey: String, emoji: String, label: String): List<SpaceMoodModel> {
+        val session = requireNotNull(authSessionDao.getCurrentSession()) { "No active session" }
+        return api.setMood(session.accessToken, spaceId, moodKey, emoji, label).map(::toMoodModel)
+    }
 
     override suspend fun setDefaultSpace(spaceId: String) {
         val session = requireNotNull(authSessionDao.getCurrentSession()) { "No active session" }
@@ -72,6 +84,19 @@ class RelationshipSpaceRepositoryImpl(
             accessConfigured = local.accessConfigured,
             createdAtEpochSeconds = local.createdAtEpochSeconds,
             updatedAtEpochSeconds = local.updatedAtEpochSeconds,
+        )
+    }
+
+    private fun toMoodModel(dto: SpaceMoodDto): SpaceMoodModel {
+        return SpaceMoodModel(
+            relationshipSpaceId = dto.relationshipSpaceId,
+            userId = dto.userId,
+            displayName = dto.displayName,
+            moodKey = dto.moodKey,
+            emoji = dto.emoji,
+            label = dto.label,
+            updatedAtEpochSeconds = dto.updatedAt,
+            isMe = dto.isMe,
         )
     }
 }

@@ -99,6 +99,8 @@ val presentationModule = module {
         SpaceViewModel(
             getDefaultRelationshipSpace = get(),
             getDefaultSpaceHero = get(),
+            getCurrentSpaceMoods = get(),
+            setSpaceMood = get(),
             syncRelationshipSpaces = get(),
             realtimeSignals = get(),
         )

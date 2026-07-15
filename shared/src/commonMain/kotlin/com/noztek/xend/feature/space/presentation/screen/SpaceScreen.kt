@@ -86,6 +86,7 @@ private data class MoodPreviewModel(
 )
 
 private data class MoodOption(
+    val key: String,
     val emoji: String,
     val label: String,
 ) {
@@ -132,15 +133,15 @@ private val previewContent = SpacePreviewContent(
 )
 
 private val moodOptions = listOf(
-    MoodOption("😊", "Happy"),
-    MoodOption("🥰", "Loved"),
-    MoodOption("😌", "Calm"),
-    MoodOption("🤩", "Excited"),
-    MoodOption("🫦", "Horny"),
-    MoodOption("😴", "Tired"),
-    MoodOption("😔", "Sad"),
-    MoodOption("😤", "Stressed"),
-    MoodOption("🤒", "Unwell"),
+    MoodOption("happy", "😊", "Happy"),
+    MoodOption("loved", "🥰", "Loved"),
+    MoodOption("calm", "😌", "Calm"),
+    MoodOption("excited", "🤩", "Excited"),
+    MoodOption("horny", "🫦", "Horny"),
+    MoodOption("tired", "😴", "Tired"),
+    MoodOption("sad", "😔", "Sad"),
+    MoodOption("stressed", "😤", "Stressed"),
+    MoodOption("unwell", "🤒", "Unwell"),
 )
 
 private val mockHero = SpaceHeroModel(
@@ -165,9 +166,10 @@ fun SpaceScreen(
     val listState = rememberLazyListState()
     val conversationId = defaultSpace?.conversationId.orEmpty()
     var isMoodPickerOpen by remember { mutableStateOf(false) }
-    var selectedMood by remember { mutableStateOf(previewContent.mood.userMood) }
-    val mood = remember(selectedMood) {
-        previewContent.mood.copy(userMood = selectedMood)
+    val myMood = state.moods.firstOrNull { it.isMe }?.displayMood ?: "Set mood"
+    val partnerMood = state.moods.firstOrNull { !it.isMe }?.displayMood ?: "Waiting"
+    val mood = remember(myMood, partnerMood) {
+        MoodPreviewModel(userMood = myMood, partnerMood = partnerMood)
     }
     val heroCollapseProgress by remember(listState) {
         derivedStateOf {
@@ -279,12 +281,12 @@ fun SpaceScreen(
                     ) {
                         Box(modifier = Modifier.width(maxWidth)) {
                             MoodSelectionCard(
-                                selectedMood = selectedMood,
+                                selectedMood = myMood,
                                 options = moodOptions,
                                 palette = palette,
                                 onMoodSelected = {
-                                    selectedMood = it.display
                                     isMoodPickerOpen = false
+                                    viewModel.setMood(it.key, it.emoji, it.label)
                                 },
                             )
                         }
@@ -792,7 +794,8 @@ private fun HeroMoodChip(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(999.dp),
-        color = Color.White.copy(alpha = 0.98f),
+        color = palette.surfaceRaised.copy(alpha = 0.98f),
+        border = BorderStroke(1.dp, palette.outline.copy(alpha = 0.56f)),
         shadowElevation = 0.5.dp,
     ) {
         Row(
