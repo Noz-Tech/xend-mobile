@@ -2,7 +2,7 @@
 
 Xend is a private couple space for staying emotionally connected. The app brings mood sharing, secure chat, daily check-ins, rituals, challenges, and relationship progress into one shared mobile experience.
 
-![Xend mobile demo](docs/demo.gif)
+<img src="docs/demo.gif" alt="Xend mobile demo" width="320">
 
 Watch the full demo: [docs/demo.mp4](docs/demo.mp4)
 
