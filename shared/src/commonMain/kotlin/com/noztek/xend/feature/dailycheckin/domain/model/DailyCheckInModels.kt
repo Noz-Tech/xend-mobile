@@ -2,6 +2,7 @@ package com.noztek.xend.feature.dailycheckin.domain.model
 
 data class DailyCheckInOverviewModel(
     val relationshipSpaceId: String,
+    val checkInDate: String,
     val dateLabel: String,
     val myCheckedIn: Boolean,
     val streakDays: Int,
@@ -9,6 +10,9 @@ data class DailyCheckInOverviewModel(
     val user: DailyCheckInMemberModel,
     val partner: DailyCheckInMemberModel,
     val rewardPoints: Int,
+    val dailyRewardAwarded: Boolean,
+    val milestoneAward: DailyCheckInMilestoneAwardModel?,
+    val totalCheckInBondPointsEarned: Int,
     val bothCheckedIn: Boolean,
     val milestones: List<DailyCheckInMilestoneModel>,
     val nextMilestoneDays: Int,

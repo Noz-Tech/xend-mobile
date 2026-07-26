@@ -57,6 +57,7 @@ class GetDailyCheckInOverviewUseCase(
 
         return DailyCheckInOverviewModel(
             relationshipSpaceId = status.relationshipSpaceId,
+            checkInDate = status.checkInDate,
             dateLabel = status.checkInDate.toFriendlyDateLabel(),
             myCheckedIn = status.myCheckedIn,
             streakDays = status.currentStreak,
@@ -76,6 +77,9 @@ class GetDailyCheckInOverviewUseCase(
                 checkedIn = status.partnerCheckedIn,
             ),
             rewardPoints = rewardPoints,
+            dailyRewardAwarded = status.dailyRewardAwarded,
+            milestoneAward = status.milestoneAward,
+            totalCheckInBondPointsEarned = status.totalCheckInBondPointsEarned,
             bothCheckedIn = status.allMembersCheckedIn,
             milestones = milestoneSpecs.map { spec ->
                 DailyCheckInMilestoneModel(

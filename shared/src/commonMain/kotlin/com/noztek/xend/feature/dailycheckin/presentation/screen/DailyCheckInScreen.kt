@@ -1,5 +1,10 @@
 package com.noztek.xend.feature.dailycheckin.presentation.screen
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,22 +35,28 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.CalendarDays
-import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.Fire
 import com.composables.icons.heroicons.outline.Gift
 import com.composables.icons.heroicons.outline.Heart
+import com.composables.icons.heroicons.outline.Sparkles
 import com.composables.icons.heroicons.outline.Trophy
+import com.composables.icons.heroicons.outline.XMark
 import com.composables.icons.heroicons.solid.Check
 import com.composables.icons.heroicons.solid.CheckCircle
 import com.noztek.xend.core.ui.components.AppButton
@@ -56,6 +67,7 @@ import com.noztek.xend.feature.dailycheckin.domain.model.DailyCheckInMilestoneMo
 import com.noztek.xend.feature.dailycheckin.domain.model.DailyCheckInMilestoneStatus
 import com.noztek.xend.feature.dailycheckin.domain.model.DailyCheckInMoodTone
 import com.noztek.xend.feature.dailycheckin.domain.model.DailyCheckInOverviewModel
+import com.noztek.xend.feature.dailycheckin.presentation.state.DailyCheckInCelebrationDialogModel
 import com.noztek.xend.feature.dailycheckin.presentation.viewmodel.DailyCheckInViewModel
 import org.koin.compose.koinInject
 
@@ -111,6 +123,14 @@ fun DailyCheckInScreen(
                 )
             }
         }
+    }
+
+    state.celebrationDialog?.let { dialog ->
+        DailyCheckInCelebrationDialog(
+            dialog = dialog,
+            palette = palette,
+            onDismiss = viewModel::dismissCelebrationDialog,
+        )
     }
 }
 
@@ -190,6 +210,400 @@ private fun DailyCheckInContent(
         }
     }
 }
+
+@Composable
+private fun DailyCheckInCelebrationDialog(
+    dialog: DailyCheckInCelebrationDialogModel,
+    palette: XendPalette,
+    onDismiss: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false,
+        ),
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+            color = Color(0xFFFFFBF7),
+            shadowElevation = 12.dp,
+        ) {
+            Box(
+                modifier = Modifier.background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFFFFFBF7),
+                            palette.primarySoft.copy(alpha = 0.18f),
+                            Color(0xFFFFFBF7),
+                        ),
+                    ),
+                ),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 18.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(78.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CheckInConfettiBurst(palette = palette)
+                        Surface(
+                            modifier = Modifier.size(52.dp),
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            color = palette.primary,
+                            shadowElevation = 3.dp,
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Heroicons.Solid.Check,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(27.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = "Check-in Complete!",
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 23.sp,
+                                lineHeight = 28.sp,
+                            ),
+                            color = Color(0xFF302325),
+                            textAlign = TextAlign.Center,
+                        )
+                        Text(
+                            text = "You both showed up today.\nSmall moments build strong connections.",
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = 14.sp,
+                                lineHeight = 20.sp,
+                            ),
+                            color = Color(0xFF756A6B),
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+
+                    StreakSummaryStrip(
+                        streakDays = dialog.streakDays,
+                        palette = palette,
+                    )
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = "Rewards Earned",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                            color = Color(0xFF302325),
+                        )
+                        RewardEarnedRow(
+                            icon = Heroicons.Outline.Heart,
+                            iconTint = palette.primary,
+                            iconBackground = Color(0xFFFFDDE4),
+                            title = "Daily Check-in",
+                            subtitle = "For showing up together",
+                            points = dialog.dailyRewardPoints,
+                            palette = palette,
+                        )
+
+                        if (dialog.milestoneDays != null && dialog.milestoneBonusPoints != null) {
+                            HorizontalDivider(color = Color(0xFFECDCDC))
+                            RewardEarnedRow(
+                                icon = Heroicons.Outline.Gift,
+                                iconTint = Color(0xFFFF9E21),
+                                iconBackground = Color(0xFFFFEBC8),
+                                title = "Streak Bonus (${dialog.milestoneDays} Days)",
+                                subtitle = "Milestone reward",
+                                points = dialog.milestoneBonusPoints,
+                                palette = palette,
+                            )
+                        }
+                    }
+
+                    TotalEarnedBanner(
+                        points = dialog.totalRewardPoints,
+                        palette = palette,
+                    )
+
+                    AppButton(
+                        text = "Continue",
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = palette.primary,
+                        contentColor = Color.White,
+                    )
+                }
+
+                Icon(
+                    imageVector = Heroicons.Outline.XMark,
+                    contentDescription = "Close",
+                    tint = Color(0xFF3C3031),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .size(21.dp)
+                        .clickable(onClick = onDismiss),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CheckInConfettiBurst(
+    palette: XendPalette,
+) {
+    val transition = rememberInfiniteTransition(label = "checkInConfetti")
+    val drift by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2200, easing = LinearEasing),
+        ),
+        label = "checkInConfettiDrift",
+    )
+    val pieces = listOf(
+        ConfettiPiece(0.28f, 0.27f, 0.00f, 0xFFFF8FA3, 10f, 32f),
+        ConfettiPiece(0.35f, 0.18f, 0.23f, 0xFFFFC078, 5f, -20f),
+        ConfettiPiece(0.42f, 0.62f, 0.38f, 0xFFFFB7C5, 4f, 18f),
+        ConfettiPiece(0.58f, 0.24f, 0.11f, 0xFFFFC078, 5f, 26f),
+        ConfettiPiece(0.66f, 0.54f, 0.31f, 0xFFFF8FA3, 12f, -28f),
+        ConfettiPiece(0.74f, 0.36f, 0.48f, 0xFFFFC078, 5f, 16f),
+        ConfettiPiece(0.31f, 0.54f, 0.63f, 0xFFFFC9D2, 4f, 8f),
+        ConfettiPiece(0.70f, 0.66f, 0.78f, 0xFFFFC9D2, 4f, -14f),
+    )
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        pieces.forEachIndexed { index, piece ->
+            val phase = (drift + piece.delay) % 1f
+            val center = Offset(
+                x = size.width * piece.x,
+                y = size.height * piece.y + ((phase - 0.5f) * 14.dp.toPx()),
+            )
+            val color = Color(piece.color).copy(alpha = 0.35f + (1f - phase) * 0.45f)
+
+            if (index % 3 == 0) {
+                drawCircle(
+                    color = color,
+                    radius = piece.size.dp.toPx() / 2f,
+                    center = center,
+                )
+            } else {
+                rotate(degrees = piece.rotation + phase * 180f, pivot = center) {
+                    drawRoundRect(
+                        color = color,
+                        topLeft = Offset(
+                            x = center.x - 3.dp.toPx(),
+                            y = center.y - piece.size.dp.toPx(),
+                        ),
+                        size = Size(6.dp.toPx(), (piece.size * 1.7f).dp.toPx()),
+                        cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx()),
+                    )
+                }
+            }
+        }
+
+        drawCircle(
+            color = palette.primary.copy(alpha = 0.16f),
+            radius = 36.dp.toPx(),
+            center = Offset(size.width / 2f, size.height / 2f),
+        )
+    }
+}
+
+@Composable
+private fun StreakSummaryStrip(
+    streakDays: Int,
+    palette: XendPalette,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        color = Color(0xFFFFF1E9),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Heroicons.Outline.Fire,
+                contentDescription = null,
+                tint = palette.primary,
+                modifier = Modifier.size(26.dp),
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = "$streakDays Day Streak",
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.ExtraBold),
+                    color = Color(0xFF302325),
+                )
+                Text(
+                    text = "Keep it going!",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF756A6B),
+                )
+            }
+            Spacer(
+                modifier = Modifier
+                    .height(34.dp)
+                    .width(1.dp)
+                    .background(Color(0xFFE7CFC9)),
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Heroicons.Outline.CalendarDays,
+                    contentDescription = null,
+                    tint = palette.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Column {
+                    Text(
+                        text = "$streakDays days",
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.ExtraBold),
+                        color = palette.primary,
+                    )
+                    Text(
+                        text = "in a row",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF756A6B),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RewardEarnedRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconTint: Color,
+    iconBackground: Color,
+    title: String,
+    subtitle: String,
+    points: Int,
+    palette: XendPalette,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 1.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            modifier = Modifier.size(44.dp),
+            shape = androidx.compose.foundation.shape.CircleShape,
+            color = iconBackground,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(21.dp),
+                )
+            }
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.ExtraBold),
+                color = Color(0xFF302325),
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF756A6B),
+            )
+        }
+        Text(
+            text = "+$points BP",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+            color = palette.primary,
+        )
+    }
+}
+
+@Composable
+private fun TotalEarnedBanner(
+    points: Int,
+    palette: XendPalette,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        color = palette.primarySoft.copy(alpha = 0.66f),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 15.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Total Earned",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                color = Color(0xFF302325),
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "+$points BP",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 24.sp,
+                    ),
+                    color = palette.primary,
+                )
+                Icon(
+                    imageVector = Heroicons.Outline.Sparkles,
+                    contentDescription = null,
+                    tint = palette.primary.copy(alpha = 0.46f),
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+        }
+    }
+}
+
+private data class ConfettiPiece(
+    val x: Float,
+    val y: Float,
+    val delay: Float,
+    val color: Long,
+    val size: Float,
+    val rotation: Float,
+)
 
 @Composable
 private fun HeaderSection(
