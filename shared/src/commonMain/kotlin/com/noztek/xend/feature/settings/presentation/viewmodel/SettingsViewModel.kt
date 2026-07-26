@@ -4,9 +4,12 @@ import com.noztek.xend.feature.auth.domain.usecase.ClearPendingAuthFlowUseCase
 import com.noztek.xend.feature.auth.domain.usecase.CompleteLogoutSessionUseCase
 import com.noztek.xend.feature.auth.domain.usecase.GetCurrentUserProfileUseCase
 import com.noztek.xend.feature.auth.domain.usecase.LogoutUseCase
+import com.noztek.xend.core.ui.media.RemoteImageMemoryCache
 import com.noztek.xend.feature.settings.presentation.state.SettingsUiState
+import com.noztek.xend.feature.space.domain.model.RelationshipSpaceCardModel
 import com.noztek.xend.feature.space.domain.usecase.GetDefaultRelationshipSpaceUseCase
 import com.noztek.xend.feature.space.domain.usecase.GetDefaultSpaceHeroUseCase
+import com.noztek.xend.feature.space.domain.usecase.GetRelationshipSpaceMediaImageUseCase
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
@@ -25,6 +28,7 @@ class SettingsViewModel(
     private val getCurrentUserProfile: GetCurrentUserProfileUseCase,
     private val getDefaultRelationshipSpace: GetDefaultRelationshipSpaceUseCase,
     private val getDefaultSpaceHero: GetDefaultSpaceHeroUseCase,
+    private val getSpaceMediaImage: GetRelationshipSpaceMediaImageUseCase,
     private val logout: LogoutUseCase,
     private val clearPendingAuthFlow: ClearPendingAuthFlowUseCase,
     private val completeLogoutSession: CompleteLogoutSessionUseCase,
@@ -33,6 +37,8 @@ class SettingsViewModel(
 
     private val _state = MutableStateFlow(SettingsUiState())
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
+    private var loadedCouplePhotoKey: String? = null
+    private var requestedCouplePhotoKey: String? = null
 
     init {
         refresh()
@@ -61,6 +67,7 @@ class SettingsViewModel(
                     coupleSpaceSubtitle = coupleSubtitle,
                 )
             }
+            loadCouplePhoto(defaultSpace)
         }
     }
 
@@ -110,6 +117,51 @@ class SettingsViewModel(
         return "${date.monthDisplayName()} ${date.day}, ${date.year}"
     }
 
+    private fun loadCouplePhoto(space: RelationshipSpaceCardModel?) {
+        if (space?.couplePhotoUrl.isNullOrBlank()) {
+            loadedCouplePhotoKey = null
+            requestedCouplePhotoKey = null
+            _state.update { it.copy(couplePhoto = null) }
+            return
+        }
+
+        val resolvedSpace = requireNotNull(space)
+        val cacheKey = mediaCacheKey(resolvedSpace)
+        if (loadedCouplePhotoKey == cacheKey && _state.value.couplePhoto != null) return
+
+        RemoteImageMemoryCache.get(cacheKey)?.let { cached ->
+            loadedCouplePhotoKey = cacheKey
+            requestedCouplePhotoKey = null
+            _state.update { it.copy(couplePhoto = cached) }
+            return
+        }
+
+        if (requestedCouplePhotoKey == cacheKey) return
+        requestedCouplePhotoKey = cacheKey
+
+        scope.launch {
+            runCatching { getSpaceMediaImage(resolvedSpace.relationshipSpaceId, COUPLE_PHOTO_KIND) }
+                .onSuccess { image ->
+                    RemoteImageMemoryCache.put(cacheKey, image)
+                    loadedCouplePhotoKey = cacheKey
+                    requestedCouplePhotoKey = null
+                    _state.update { it.copy(couplePhoto = image) }
+                }
+                .onFailure {
+                    if (requestedCouplePhotoKey == cacheKey) {
+                        requestedCouplePhotoKey = null
+                    }
+                }
+        }
+    }
+
+    private fun mediaCacheKey(space: RelationshipSpaceCardModel): String {
+        val version = space.couplePhotoVersion
+            ?.takeIf { it.isNotBlank() }
+            ?: space.updatedAtEpochSeconds.toString()
+        return "${space.relationshipSpaceId}:$COUPLE_PHOTO_KIND:$version"
+    }
+
     private fun LocalDate.monthDisplayName(): String = when (month) {
         Month.JANUARY -> "January"
         Month.FEBRUARY -> "February"
@@ -123,5 +175,9 @@ class SettingsViewModel(
         Month.OCTOBER -> "October"
         Month.NOVEMBER -> "November"
         Month.DECEMBER -> "December"
+    }
+
+    private companion object {
+        const val COUPLE_PHOTO_KIND = "couple-photo"
     }
 }

@@ -94,6 +94,7 @@ val presentationModule = module {
             getCurrentUserProfile = get(),
             getDefaultRelationshipSpace = get(),
             getDefaultSpaceHero = get(),
+            getSpaceMediaImage = get(),
             logout = get(),
             clearPendingAuthFlow = get(),
             completeLogoutSession = get(),

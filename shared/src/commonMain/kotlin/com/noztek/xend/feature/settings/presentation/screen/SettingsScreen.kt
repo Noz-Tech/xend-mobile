@@ -1,5 +1,6 @@
 package com.noztek.xend.feature.settings.presentation.screen
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -79,6 +83,7 @@ fun SettingsScreen(
         CoupleSpaceSettingsRow(
             name = state.coupleSpaceTitle,
             supportingText = state.coupleSpaceSubtitle,
+            couplePhoto = state.couplePhoto,
             palette = palette,
             onClick = onCoupleSettingsClick,
         )
@@ -200,6 +205,7 @@ private fun SettingsHeader(palette: XendPalette) {
 private fun CoupleSpaceSettingsRow(
     name: String,
     supportingText: String,
+    couplePhoto: ImageBitmap?,
     palette: XendPalette,
     onClick: () -> Unit,
 ) {
@@ -225,12 +231,23 @@ private fun CoupleSpaceSettingsRow(
                 color = palette.primarySoft,
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Heroicons.Outline.Heart,
-                        contentDescription = null,
-                        tint = palette.primary.copy(alpha = 0.72f),
-                        modifier = Modifier.size(24.dp),
-                    )
+                    if (couplePhoto != null) {
+                        Image(
+                            bitmap = couplePhoto,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape),
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Heroicons.Outline.Heart,
+                            contentDescription = null,
+                            tint = palette.primary.copy(alpha = 0.72f),
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
                 }
             }
 
