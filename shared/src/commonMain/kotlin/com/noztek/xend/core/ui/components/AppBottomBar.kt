@@ -15,7 +15,6 @@ import com.composables.icons.heroicons.outline.CalendarDays
 import com.composables.icons.heroicons.outline.ChatBubbleOvalLeftEllipsis
 import com.composables.icons.heroicons.outline.Gift
 import com.composables.icons.heroicons.outline.Home
-import com.composables.icons.heroicons.outline.Sparkles
 
 data class BottomBarItem(
     val title: String,
@@ -55,12 +54,13 @@ fun rememberRootBottomBarItems(
                 selected = selectedTab == RootBottomBarTab.Rituals,
                 onClick = onRitualsClick,
             ),
-            BottomBarItem(
-                title = "Games",
-                icon = Heroicons.Outline.Sparkles,
-                selected = selectedTab == RootBottomBarTab.Games,
-                onClick = onGamesClick,
-            ),
+            // Phase 2: restore Games in the root bottom navigation.
+            // BottomBarItem(
+            //     title = "Games",
+            //     icon = Heroicons.Outline.Sparkles,
+            //     selected = selectedTab == RootBottomBarTab.Games,
+            //     onClick = onGamesClick,
+            // ),
             BottomBarItem(
                 title = "Challenges",
                 icon = Heroicons.Outline.Gift,

@@ -63,15 +63,20 @@ import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.FaceSmile
 import com.composables.icons.heroicons.outline.Gift
 import com.composables.icons.heroicons.outline.Heart
+import com.composables.icons.heroicons.outline.LockClosed
 import com.composables.icons.heroicons.outline.Sparkles
 import com.composables.icons.heroicons.outline.Sun
 import com.composables.icons.heroicons.outline.Trophy
+import com.composables.icons.heroicons.solid.CalendarDays
+import com.composables.icons.heroicons.solid.ChatBubbleLeftRight
 import com.composables.icons.heroicons.solid.Fire
 import com.composables.icons.heroicons.solid.Heart
+import com.composables.icons.heroicons.solid.Trophy
 import com.noztek.xend.core.ui.theme.XendPalette
 import com.noztek.xend.core.ui.theme.XendTheme
 import com.noztek.xend.feature.space.domain.model.RelationshipSpaceCardModel
 import com.noztek.xend.feature.space.domain.model.SpaceHeroModel
+import com.noztek.xend.feature.space.presentation.state.SpaceTodayRitualModel
 import com.noztek.xend.feature.space.presentation.viewmodel.SpaceViewModel
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
@@ -105,7 +110,6 @@ private data class PetPreviewModel(
 private data class SpacePreviewContent(
     val mood: MoodPreviewModel,
     val pet: PetPreviewModel,
-    val ritualPrompt: String,
 )
 
 private data class QuickActionUi(
@@ -129,7 +133,6 @@ private val previewContent = SpacePreviewContent(
         petLove = 0.78f,
         petNextReward = "Cozy Hat",
     ),
-    ritualPrompt = "Share one thing you're looking forward to this week.",
 )
 
 private val moodOptions = listOf(
@@ -197,35 +200,36 @@ fun SpaceScreen(
         listOf(
             QuickActionUi(
                 title = "Chat",
-                icon = Heroicons.Outline.ChatBubbleLeftRight,
+                icon = Heroicons.Solid.ChatBubbleLeftRight,
                 iconTint = palette.lavender,
                 containerColor = palette.lavenderSoft,
                 onClick = openChat,
             ),
             QuickActionUi(
                 title = "Check-In",
-                icon = Heroicons.Outline.CalendarDays,
+                icon = Heroicons.Solid.CalendarDays,
                 iconTint = palette.primary,
                 containerColor = palette.primarySoft,
                 onClick = onDailyCheckInClick,
             ),
             QuickActionUi(
                 title = "Daily Ritual",
-                icon = Heroicons.Outline.Heart,
-                iconTint = palette.primary,
-                containerColor = palette.primarySoft,
-                onClick = onDailyRitualClick,
-            ),
-            QuickActionUi(
-                title = "Games",
-                icon = Heroicons.Outline.Sparkles,
+                icon = Heroicons.Solid.Heart,
                 iconTint = palette.orange,
                 containerColor = palette.orangeSoft,
-                onClick = onGamesClick,
+                onClick = onDailyRitualClick,
             ),
+            // Phase 2: restore Games in the Space quick menu.
+            // QuickActionUi(
+            //     title = "Games",
+            //     icon = Heroicons.Outline.Sparkles,
+            //     iconTint = palette.orange,
+            //     containerColor = palette.orangeSoft,
+            //     onClick = onGamesClick,
+            // ),
             QuickActionUi(
                 title = "Challenges",
-                icon = Heroicons.Outline.Trophy,
+                icon = Heroicons.Solid.Trophy,
                 iconTint = palette.lavender,
                 containerColor = palette.lavenderSoft,
                 onClick = onChallengesClick,
@@ -315,7 +319,8 @@ fun SpaceScreen(
         }
         item {
             TodaysRitualCard(
-                ritualPrompt = previewContent.ritualPrompt,
+                ritual = state.todayRitual,
+                isLoading = state.isLoading && state.todayRitual == null,
                 palette = palette,
                 onClick = onDailyRitualClick,
             )
@@ -429,106 +434,136 @@ private fun PetCard(
     model: PetPreviewModel,
     palette: XendPalette,
 ) {
-    val shape = RoundedCornerShape(22.dp)
+    val shape = RoundedCornerShape(18.dp)
 
-    Card(
-        shape = shape,
-        colors = CardDefaults.cardColors(containerColor = palette.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+    Box {
+        Card(
+            shape = shape,
+            colors = CardDefaults.cardColors(containerColor = palette.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
         ) {
-            Text(
-                text = "Our Pet",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                color = palette.ink,
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Image(
-                    painter = painterResource(Res.drawable.pet),
-                    contentDescription = model.petName,
-                    modifier = Modifier
-                        .size(100.dp),
-                    contentScale = ContentScale.Fit,
-                )
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
-                ) {
-                    Text(
-                        text = model.petName,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                        color = palette.ink,
-                    )
-                    Text(
-                        text = "${model.petStatus} • Lv. ${model.petLevel}",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = palette.lavender,
-                    )
-                    Text(
-                        text = "Feed, play, and grow your shared companion together.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = palette.mutedInk,
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                PetStatChip(
-                    title = "Energy",
-                    icon = Heroicons.Outline.Sparkles,
-                    value = model.petEnergy,
-                    accent = palette.lavender,
-                    background = palette.lavenderSoft,
-                    modifier = Modifier.weight(1f),
-                )
-                PetStatChip(
-                    title = "Love",
-                    icon = Heroicons.Solid.Heart,
-                    value = model.petLove,
-                    accent = palette.primary,
-                    background = palette.primarySoft,
-                    modifier = Modifier.weight(1f),
-                )
-                PetRewardChip(
-                    reward = model.petNextReward,
-                    palette = palette,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = "Visit Pet",
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
-                    color = palette.lavender,
+                    text = "Our Pet",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                    color = palette.ink,
                 )
-                Surface(
-                    modifier = Modifier.size(36.dp),
-                    shape = CircleShape,
-                    color = palette.lavender,
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Heroicons.Outline.ChevronRight,
-                            contentDescription = "Visit pet",
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp),
+                    Image(
+                        painter = painterResource(Res.drawable.pet),
+                        contentDescription = model.petName,
+                        modifier = Modifier
+                            .size(100.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                        Text(
+                            text = model.petName,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                            color = palette.ink,
+                        )
+                        Text(
+                            text = "${model.petStatus} • Lv. ${model.petLevel}",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = palette.lavender,
+                        )
+                        Text(
+                            text = "Feed, play, and grow your shared companion together.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = palette.mutedInk,
                         )
                     }
                 }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    PetStatChip(
+                        title = "Energy",
+                        icon = Heroicons.Outline.Sparkles,
+                        value = model.petEnergy,
+                        accent = palette.lavender,
+                        background = palette.lavenderSoft,
+                        modifier = Modifier.weight(1f),
+                    )
+                    PetStatChip(
+                        title = "Love",
+                        icon = Heroicons.Solid.Heart,
+                        value = model.petLove,
+                        accent = palette.primary,
+                        background = palette.primarySoft,
+                        modifier = Modifier.weight(1f),
+                    )
+                    PetRewardChip(
+                        reward = model.petNextReward,
+                        palette = palette,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Visit Pet",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                        color = palette.lavender,
+                    )
+                    Surface(
+                        modifier = Modifier.size(36.dp),
+                        shape = CircleShape,
+                        color = palette.lavender,
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Heroicons.Outline.ChevronRight,
+                                contentDescription = "Visit pet",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 10.dp, end = 10.dp),
+            shape = RoundedCornerShape(999.dp),
+            color = palette.ink.copy(alpha = 0.88f),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
+            shadowElevation = 2.dp,
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Heroicons.Outline.LockClosed,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(12.dp),
+                )
+                Text(
+                    text = "Coming Soon",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
+                    color = Color.White,
+                )
             }
         }
     }
@@ -547,143 +582,109 @@ private fun CoupleLevelCard(
 
     Card(
         shape = shape,
+        colors = CardDefaults.cardColors(containerColor = palette.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            palette.surface,
-                            palette.surfaceRaised.copy(alpha = 0.96f),
-                            palette.lavenderSoft.copy(alpha = 0.28f),
-                        ),
-                    ),
-                ),
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 18.dp, end = 18.dp)
-                    .size(80.dp)
-                    .background(
-                        color = palette.primarySoft.copy(alpha = 0.16f),
-                        shape = CircleShape,
-                    ),
-            )
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 20.dp, bottom = 14.dp)
-                    .size(64.dp)
-                    .background(
-                        color = palette.lavenderSoft.copy(alpha = 0.14f),
-                        shape = CircleShape,
-                    ),
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.Top,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    Surface(
-                        color = palette.primarySoft,
-                        shape = CircleShape,
-                    ) {
-                        Box(
-                            modifier = Modifier.size(62.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = Heroicons.Outline.Heart,
-                                contentDescription = null,
-                                tint = palette.primary,
-                                modifier = Modifier.size(30.dp),
-                            )
-                        }
-                    }
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = "Couple Level",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                                color = palette.ink,
-                            )
-                            Text(
-                                text = space?.let { "Lv. ${it.currentLevel}" } ?: "Loading",
-                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                                color = palette.primary,
-                            )
-                        }
-                        Text(
-                            text = space?.currentLevelName ?: "Bond progress",
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                            color = palette.mutedInk,
-                        )
-                        Text(
-                            text = space?.let {
-                                "${formatNumber(it.currentPoints)} / ${formatNumber(it.requiredPoints)}"
-                            } ?: "-- / --",
-                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
-                            color = palette.ink,
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(10.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(palette.progressTrack),
+                Surface(
+                    color = palette.primarySoft,
+                    shape = CircleShape,
                 ) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth(progress.coerceIn(0f, 1f))
-                            .height(10.dp)
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(
-                                Brush.horizontalGradient(
-                                    colors = listOf(
-                                        palette.primaryBright,
-                                        palette.primary,
-                                    ),
-                                ),
-                            ),
-                    )
+                        modifier = Modifier.size(62.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Heroicons.Outline.Heart,
+                            contentDescription = null,
+                            tint = palette.primary,
+                            modifier = Modifier.size(30.dp),
+                        )
+                    }
                 }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Icon(
-                        imageVector = Heroicons.Solid.Fire,
-                        contentDescription = null,
-                        tint = palette.primary,
-                        modifier = Modifier.size(17.dp),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Couple Level",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                            color = palette.ink,
+                        )
+                        Text(
+                            text = space?.let { "Lv. ${it.currentLevel}" } ?: "Loading",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                            color = palette.primary,
+                        )
+                    }
+                    Text(
+                        text = space?.currentLevelName ?: "Bond progress",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                        color = palette.mutedInk,
                     )
                     Text(
-                        text = "$connectedDays days connected",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        text = space?.let {
+                            "${formatNumber(it.currentPoints)} / ${formatNumber(it.requiredPoints)}"
+                        } ?: "-- / --",
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
                         color = palette.ink,
                     )
                 }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(palette.progressTrack),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(progress.coerceIn(0f, 1f))
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    palette.primaryBright,
+                                    palette.primary,
+                                ),
+                            ),
+                        ),
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Heroicons.Solid.Fire,
+                    contentDescription = null,
+                    tint = palette.primary,
+                    modifier = Modifier.size(17.dp),
+                )
+                Text(
+                    text = "$connectedDays days connected",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = palette.ink,
+                )
             }
         }
     }
@@ -964,7 +965,7 @@ private fun FloatingHeart(
     size: androidx.compose.ui.unit.Dp,
 ) {
     Icon(
-        imageVector = Heroicons.Outline.Heart,
+        imageVector = Heroicons.Solid.Heart,
         contentDescription = null,
         tint = palette.primary.copy(alpha = 0.34f),
         modifier = modifier.size(size),
@@ -1114,7 +1115,7 @@ private fun QuickActionCard(
         modifier = modifier
             .clickable(onClick = action.onClick),
         shape = shape,
-        colors = CardDefaults.cardColors(containerColor = palette.surface),
+        colors = CardDefaults.cardColors(containerColor = action.containerColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
     ) {
         Column(
@@ -1142,11 +1143,23 @@ private fun QuickActionCard(
 
 @Composable
 private fun TodaysRitualCard(
-    ritualPrompt: String,
+    ritual: SpaceTodayRitualModel?,
+    isLoading: Boolean,
     palette: XendPalette,
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(22.dp)
+    val title = ritual?.title ?: if (isLoading) "Loading ritual..." else "No ritual assigned today"
+    val body = ritual?.description ?: if (isLoading) {
+        "Checking your daily ritual."
+    } else {
+        "Open Daily Ritual to check again later."
+    }
+    val statusLabel = when {
+        ritual?.completed == true -> "Completed"
+        ritual != null -> "+${ritual.rewardPoints} BP"
+        else -> null
+    }
 
     Card(
         shape = shape,
@@ -1156,41 +1169,84 @@ private fun TodaysRitualCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                .padding(horizontal = 13.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(11.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .size(56.dp)
-                    .background(palette.orangeSoft, RoundedCornerShape(18.dp)),
+                    .size(46.dp)
+                    .background(palette.orangeSoft, RoundedCornerShape(15.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Heroicons.Outline.Sun,
                     contentDescription = null,
                     tint = palette.orange,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(20.dp),
                 )
             }
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Today's Ritual",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                        color = palette.ink,
+                    )
+                    statusLabel?.let { label ->
+                        Surface(
+                            shape = RoundedCornerShape(999.dp),
+                            color = if (ritual?.completed == true) {
+                                Color(0xFFE6F6EC)
+                            } else {
+                                palette.primarySoft
+                            },
+                        ) {
+                            Text(
+                                text = label,
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                ),
+                                color = if (ritual?.completed == true) {
+                                    Color(0xFF2E8B57)
+                                } else {
+                                    palette.primary
+                                },
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
                 Text(
-                    text = "Today's Ritual",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 13.sp,
+                        lineHeight = 17.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                    ),
                     color = palette.ink,
                 )
                 Text(
-                    text = ritualPrompt,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                    color = palette.ink,
+                    text = body,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                    ),
+                    color = palette.mutedInk,
                 )
             }
             Surface(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(34.dp)
                     .clickable(onClick = onClick),
                 shape = CircleShape,
                 color = palette.primary,
@@ -1200,7 +1256,7 @@ private fun TodaysRitualCard(
                         imageVector = Heroicons.Outline.ChevronRight,
                         contentDescription = "Open ritual",
                         tint = Color.White,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(15.dp),
                     )
                 }
             }

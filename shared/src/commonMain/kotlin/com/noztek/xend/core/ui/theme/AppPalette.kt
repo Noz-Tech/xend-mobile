@@ -28,6 +28,8 @@ data class XendPalette(
     val peachSoft: Color,
     val orange: Color,
     val orangeSoft: Color,
+    val mint: Color,
+    val mintSoft: Color,
 )
 
 val lightAppPalette = XendPalette(
@@ -52,6 +54,8 @@ val lightAppPalette = XendPalette(
     peachSoft = Color(0xFFFFF1ED),
     orange = Color(0xFFF5A33D),
     orangeSoft = Color(0xFFFFF5E7),
+    mint = Color(0xFF37A978),
+    mintSoft = Color(0xFFEAF8F1),
 )
 
 val darkAppPalette = XendPalette(
@@ -76,6 +80,8 @@ val darkAppPalette = XendPalette(
     peachSoft = Color(0xFF3A2622),
     orange = Color(0xFFFFB86B),
     orangeSoft = Color(0xFF3A2C16),
+    mint = Color(0xFF7AD9AE),
+    mintSoft = Color(0xFF18382A),
 )
 
 val LocalXendPalette = staticCompositionLocalOf { lightAppPalette }

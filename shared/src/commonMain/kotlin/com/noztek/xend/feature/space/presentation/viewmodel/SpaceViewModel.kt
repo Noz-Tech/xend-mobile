@@ -2,11 +2,14 @@ package com.noztek.xend.feature.space.presentation.viewmodel
 
 import com.noztek.xend.core.presentation.defaultViewModelScope
 import com.noztek.xend.core.realtime.RealtimeFeatureSignals
+import com.noztek.xend.feature.dailyritual.domain.model.DailyRitualTodayModel
+import com.noztek.xend.feature.dailyritual.domain.usecase.GetDailyRitualOverviewUseCase
 import com.noztek.xend.feature.space.domain.usecase.GetCurrentSpaceMoodsUseCase
 import com.noztek.xend.feature.space.domain.usecase.GetDefaultSpaceHeroUseCase
 import com.noztek.xend.feature.space.domain.usecase.GetDefaultRelationshipSpaceUseCase
 import com.noztek.xend.feature.space.domain.usecase.SetSpaceMoodUseCase
 import com.noztek.xend.feature.space.domain.usecase.SyncRelationshipSpacesUseCase
+import com.noztek.xend.feature.space.presentation.state.SpaceTodayRitualModel
 import com.noztek.xend.feature.space.presentation.state.SpaceUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +23,7 @@ class SpaceViewModel(
     private val getCurrentSpaceMoods: GetCurrentSpaceMoodsUseCase,
     private val setSpaceMood: SetSpaceMoodUseCase,
     private val syncRelationshipSpaces: SyncRelationshipSpacesUseCase,
+    private val getDailyRitualOverview: GetDailyRitualOverviewUseCase,
     private val realtimeSignals: RealtimeFeatureSignals,
 ) {
     private val scope = defaultViewModelScope()
@@ -115,12 +119,15 @@ class SpaceViewModel(
                 val moods = defaultSpace
                     ?.let { space -> runCatching { getCurrentSpaceMoods(space.relationshipSpaceId) }.getOrDefault(emptyList()) }
                     .orEmpty()
+                val todayRitual = defaultSpace
+                    ?.let { runCatching { getDailyRitualOverview().todayRitual?.toSpaceModel() }.getOrNull() }
                 _state.update {
                     it.copy(
                         isLoading = false,
                         defaultSpace = defaultSpace,
                         hero = hero,
                         moods = moods,
+                        todayRitual = todayRitual,
                     )
                 }
             }
@@ -132,5 +139,14 @@ class SpaceViewModel(
                     )
                 }
             }
+    }
+
+    private fun DailyRitualTodayModel.toSpaceModel(): SpaceTodayRitualModel {
+        return SpaceTodayRitualModel(
+            title = title,
+            description = description,
+            rewardPoints = rewardPoints,
+            completed = completed,
+        )
     }
 }

@@ -104,6 +104,7 @@ val presentationModule = module {
             getCurrentSpaceMoods = get(),
             setSpaceMood = get(),
             syncRelationshipSpaces = get(),
+            getDailyRitualOverview = get(),
             realtimeSignals = get(),
         )
     }

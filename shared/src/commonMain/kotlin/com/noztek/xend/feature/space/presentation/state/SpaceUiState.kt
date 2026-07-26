@@ -9,6 +9,14 @@ data class SpaceUiState(
     val defaultSpace: RelationshipSpaceCardModel? = null,
     val hero: SpaceHeroModel? = null,
     val moods: List<SpaceMoodModel> = emptyList(),
+    val todayRitual: SpaceTodayRitualModel? = null,
     val isSavingMood: Boolean = false,
     val message: String? = null,
+)
+
+data class SpaceTodayRitualModel(
+    val title: String,
+    val description: String,
+    val rewardPoints: Int,
+    val completed: Boolean,
 )
