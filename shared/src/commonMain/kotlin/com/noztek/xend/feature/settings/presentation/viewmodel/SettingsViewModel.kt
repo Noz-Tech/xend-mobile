@@ -46,7 +46,10 @@ class SettingsViewModel(
             val coupleTitle = hero?.let { "${it.userName} & ${it.partnerName}" }
                 ?: defaultSpace?.name?.takeIf { it.isNotBlank() }
                 ?: "Couple Space"
-            val coupleSubtitle = defaultSpace?.createdAtEpochSeconds
+            val coupleSubtitle = defaultSpace?.relationshipStartDate
+                ?.takeIf { it.isNotBlank() }
+                ?.let { "Together since ${formatJoinedDate(it)}" }
+                ?: defaultSpace?.createdAtEpochSeconds
                 ?.takeIf { it > 0L }
                 ?.let { "Together since ${formatJoinedDate(it)}" }
                 ?: "Manage your shared space settings."
@@ -98,6 +101,12 @@ class SettingsViewModel(
         val date = Instant.fromEpochSeconds(epochSeconds)
             .toLocalDateTime(TimeZone.currentSystemDefault())
             .date
+        return "${date.monthDisplayName()} ${date.day}, ${date.year}"
+    }
+
+    private fun formatJoinedDate(isoDate: String): String {
+        val date = runCatching { LocalDate.parse(isoDate) }.getOrNull()
+            ?: return isoDate
         return "${date.monthDisplayName()} ${date.day}, ${date.year}"
     }
 

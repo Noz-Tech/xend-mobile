@@ -6,6 +6,7 @@ data class RelationshipSpaceCardModel(
     val name: String,
     val coverPhotoUrl: String?,
     val couplePhotoUrl: String?,
+    val relationshipStartDate: String,
     val currentLevel: Int,
     val currentLevelName: String,
     val currentPoints: Int,

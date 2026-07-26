@@ -1,0 +1,4 @@
+ALTER TABLE RelationshipSpaces ADD COLUMN relationship_start_date TEXT NOT NULL DEFAULT '';
+UPDATE RelationshipSpaces
+SET relationship_start_date = date(created_at, 'unixepoch')
+WHERE relationship_start_date = '';

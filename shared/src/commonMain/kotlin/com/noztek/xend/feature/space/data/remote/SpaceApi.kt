@@ -37,6 +37,7 @@ data class SpaceDto(
     val name: String? = null,
     @SerialName("cover_photo_url") val coverPhotoUrl: String? = null,
     @SerialName("couple_photo_url") val couplePhotoUrl: String? = null,
+    @SerialName("relationship_start_date") val relationshipStartDate: String = "",
     @SerialName("created_by_user_id") val createdByUserId: String,
     @SerialName("current_level") val currentLevel: Int = 1,
     @SerialName("current_level_name") val currentLevelName: String = "Tease",
@@ -62,6 +63,7 @@ data class UnlockSpaceRequestDto(
 @Serializable
 data class UpdateSpaceSettingsRequestDto(
     val name: String?,
+    @SerialName("relationship_start_date") val relationshipStartDate: String? = null,
 )
 
 @Serializable
@@ -165,12 +167,22 @@ class SpaceApi(
         }
     }
 
-    suspend fun updateSettings(accessToken: String, spaceId: String, name: String?): SpaceDto =
+    suspend fun updateSettings(
+        accessToken: String,
+        spaceId: String,
+        name: String?,
+        relationshipStartDate: String? = null,
+    ): SpaceDto =
         execute {
             client.patch(url("/v1/relationship-spaces/$spaceId/settings")) {
                 header(HttpHeaders.Authorization, "Bearer $accessToken")
                 contentType(ContentType.Application.Json)
-                setBody(UpdateSpaceSettingsRequestDto(name = name))
+                setBody(
+                    UpdateSpaceSettingsRequestDto(
+                        name = name,
+                        relationshipStartDate = relationshipStartDate,
+                    ),
+                )
             }
         }
 

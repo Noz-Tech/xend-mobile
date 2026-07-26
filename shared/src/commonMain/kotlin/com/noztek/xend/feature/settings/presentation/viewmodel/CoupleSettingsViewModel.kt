@@ -99,6 +99,37 @@ class CoupleSettingsViewModel(
         }
     }
 
+    fun saveRelationshipStartDate(date: String) {
+        val space = _state.value.space ?: return
+        if (_state.value.isSavingRelationshipStartDate) return
+
+        scope.launch {
+            _state.update { it.copy(isSavingRelationshipStartDate = true, message = null) }
+            runCatching {
+                updateRelationshipSpaceSettings(
+                    spaceId = space.relationshipSpaceId,
+                    name = space.name.trim().takeIf { it.isNotBlank() },
+                    relationshipStartDate = date.trim(),
+                )
+            }.onSuccess { updated ->
+                _state.update {
+                    it.copy(
+                        isSavingRelationshipStartDate = false,
+                        space = updated,
+                        message = null,
+                    )
+                }
+            }.onFailure { error ->
+                _state.update {
+                    it.copy(
+                        isSavingRelationshipStartDate = false,
+                        message = error.message ?: "Failed to update relationship start date.",
+                    )
+                }
+            }
+        }
+    }
+
     fun uploadCover(image: PickedImageData) {
         val space = _state.value.space ?: return
         if (_state.value.isUploadingCoverPhoto) return

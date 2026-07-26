@@ -389,10 +389,10 @@ private fun HeroGreetingSection(
                         scaleX = imageScale
                         scaleY = imageScale
                         translationY = -24f * animatedProgress
-                    },
+                },
                 shape = CircleShape,
                 color = palette.surface,
-                border = BorderStroke(4.dp, Color.White),
+                border = BorderStroke(4.dp, palette.surface),
                 shadowElevation = 3.dp,
             ) {
                 if (couplePhoto != null) {

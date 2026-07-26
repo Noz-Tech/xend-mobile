@@ -11,6 +11,9 @@ import com.noztek.xend.feature.space.domain.model.RelationshipSpaceCardModel
 import com.noztek.xend.feature.space.domain.model.SpaceHeroModel
 import com.noztek.xend.feature.space.domain.model.SpaceMoodModel
 import com.noztek.xend.feature.space.domain.repository.RelationshipSpaceRepository
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlin.time.Clock
 
 class GetDefaultRelationshipSpaceUseCase(
@@ -40,7 +43,12 @@ class GetDefaultSpaceHeroUseCase(
         val partnerName = partnerMember?.displayName
             ?.takeIf { it.isNotBlank() }
             ?: "Your partner"
-        val connectedDays = ((Clock.System.now().epochSeconds - space.createdAtEpochSeconds)
+        val startEpochSeconds = runCatching {
+            LocalDate.parse(space.relationshipStartDate)
+                .atStartOfDayIn(TimeZone.currentSystemDefault())
+                .epochSeconds
+        }.getOrDefault(space.createdAtEpochSeconds)
+        val connectedDays = ((Clock.System.now().epochSeconds - startEpochSeconds)
             .coerceAtLeast(0L) / 86_400L).toInt() + 1
 
         return SpaceHeroModel(
@@ -90,8 +98,12 @@ class ConfigureRelationshipSpaceAccessUseCase(
 class UpdateRelationshipSpaceSettingsUseCase(
     private val repository: RelationshipSpaceRepository,
 ) {
-    suspend operator fun invoke(spaceId: String, name: String?): RelationshipSpaceCardModel {
-        return repository.updateSpaceSettings(spaceId, name)
+    suspend operator fun invoke(
+        spaceId: String,
+        name: String?,
+        relationshipStartDate: String? = null,
+    ): RelationshipSpaceCardModel {
+        return repository.updateSpaceSettings(spaceId, name, relationshipStartDate)
     }
 }
 
@@ -143,6 +155,7 @@ class SyncRelationshipSpacesUseCase(
                 currentLevelName = space.currentLevelName,
                 coverPhotoUrl = space.coverPhotoUrl,
                 couplePhotoUrl = space.couplePhotoUrl,
+                relationshipStartDate = space.relationshipStartDate,
                 isDefault = space.isDefault,
                 accessHint = space.accessHint,
                 accessConfigured = space.accessConfigured,

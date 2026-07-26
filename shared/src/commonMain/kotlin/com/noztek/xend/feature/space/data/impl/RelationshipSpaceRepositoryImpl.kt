@@ -35,9 +35,18 @@ class RelationshipSpaceRepositoryImpl(
         api.setDefaultSpace(session.accessToken, spaceId)
     }
 
-    override suspend fun updateSpaceSettings(spaceId: String, name: String?): RelationshipSpaceCardModel {
+    override suspend fun updateSpaceSettings(
+        spaceId: String,
+        name: String?,
+        relationshipStartDate: String?,
+    ): RelationshipSpaceCardModel {
         val session = requireNotNull(authSessionDao.getCurrentSession()) { "No active session" }
-        val space = api.updateSettings(session.accessToken, spaceId, name)
+        val space = api.updateSettings(
+            accessToken = session.accessToken,
+            spaceId = spaceId,
+            name = name,
+            relationshipStartDate = relationshipStartDate,
+        )
         upsertSpace(space)
         return toModel(requireNotNull(dao.getSpaceCard(space.relationshipSpaceId)) { "Relationship space update failed" })
     }
@@ -78,6 +87,7 @@ class RelationshipSpaceRepositoryImpl(
             name = space.name ?: "Unnamed Space",
             coverPhotoUrl = space.coverPhotoUrl,
             couplePhotoUrl = space.couplePhotoUrl,
+            relationshipStartDate = space.relationshipStartDate,
             currentLevel = space.currentLevel,
             currentLevelName = space.currentLevelName,
             currentPoints = 0,
@@ -99,6 +109,7 @@ class RelationshipSpaceRepositoryImpl(
             currentLevelName = space.currentLevelName,
             coverPhotoUrl = space.coverPhotoUrl,
             couplePhotoUrl = space.couplePhotoUrl,
+            relationshipStartDate = space.relationshipStartDate,
             isDefault = space.isDefault,
             accessHint = space.accessHint,
             accessConfigured = space.accessConfigured,
@@ -115,6 +126,7 @@ class RelationshipSpaceRepositoryImpl(
             name = local.name,
             coverPhotoUrl = local.coverPhotoUrl,
             couplePhotoUrl = local.couplePhotoUrl,
+            relationshipStartDate = local.relationshipStartDate,
             currentLevel = local.currentLevel,
             currentLevelName = local.currentLevelName,
             currentPoints = local.currentPoints,

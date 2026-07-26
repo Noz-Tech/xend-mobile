@@ -6,6 +6,7 @@ import com.noztek.xend.feature.space.domain.model.RelationshipSpaceCardModel
 data class CoupleSettingsUiState(
     val isLoading: Boolean = false,
     val isSavingName: Boolean = false,
+    val isSavingRelationshipStartDate: Boolean = false,
     val isUploadingCoverPhoto: Boolean = false,
     val isUploadingCouplePhoto: Boolean = false,
     val space: RelationshipSpaceCardModel? = null,

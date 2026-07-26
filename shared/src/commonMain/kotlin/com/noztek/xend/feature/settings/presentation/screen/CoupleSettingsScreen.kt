@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -27,6 +26,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -70,7 +73,14 @@ import com.noztek.xend.core.ui.media.rememberImagePickerLauncher
 import com.noztek.xend.core.ui.theme.XendPalette
 import com.noztek.xend.core.ui.theme.XendTheme
 import com.noztek.xend.feature.settings.presentation.viewmodel.CoupleSettingsViewModel
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.Month
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.koinInject
+import kotlin.time.Clock
 
 @Composable
 fun CoupleSettingsScreen(
@@ -82,7 +92,13 @@ fun CoupleSettingsScreen(
     var monthsaryEnabled by remember { mutableStateOf(true) }
     var anniversaryEnabled by remember { mutableStateOf(true) }
     var isNameDialogOpen by remember { mutableStateOf(false) }
+    var isStartDateDialogOpen by remember { mutableStateOf(false) }
     val coupleName = state.space?.name?.takeIf { it.isNotBlank() } ?: "Couple Space"
+    val relationshipStartDate = state.space?.relationshipStartDate.orEmpty()
+    val relationshipStartDateText = formatRelationshipStartDate(
+        isoDate = relationshipStartDate,
+        fallbackEpochSeconds = state.space?.createdAtEpochSeconds,
+    )
     val coverPhotoPicker = rememberImagePickerLauncher(
         onPicked = viewModel::uploadCover,
     )
@@ -109,6 +125,7 @@ fun CoupleSettingsScreen(
             couplePhoto = state.couplePhoto,
             isUploadingCoverPhoto = state.isUploadingCoverPhoto,
             isUploadingCouplePhoto = state.isUploadingCouplePhoto,
+            relationshipStartDateText = relationshipStartDateText,
             palette = palette,
             onEditCoverClick = coverPhotoPicker,
             onEditPhotoClick = couplePhotoPicker,
@@ -131,8 +148,9 @@ fun CoupleSettingsScreen(
             CoupleSettingsRow(
                 icon = Heroicons.Outline.CalendarDays,
                 title = "Relationship Start Date",
-                subtitle = "May 20, 2024",
+                subtitle = relationshipStartDateText,
                 palette = palette,
+                onClick = { isStartDateDialogOpen = true },
             )
         }
 
@@ -207,6 +225,18 @@ fun CoupleSettingsScreen(
             },
         )
     }
+    if (isStartDateDialogOpen) {
+        RelationshipStartDateDialog(
+            currentDate = relationshipStartDate,
+            isSaving = state.isSavingRelationshipStartDate,
+            palette = palette,
+            onDismiss = { isStartDateDialogOpen = false },
+            onSave = { date ->
+                viewModel.saveRelationshipStartDate(date)
+                isStartDateDialogOpen = false
+            },
+        )
+    }
 }
 
 @Composable
@@ -261,6 +291,7 @@ private fun CoupleProfileHero(
     couplePhoto: ImageBitmap?,
     isUploadingCoverPhoto: Boolean,
     isUploadingCouplePhoto: Boolean,
+    relationshipStartDateText: String,
     palette: XendPalette,
     onEditCoverClick: () -> Unit,
     onEditPhotoClick: () -> Unit,
@@ -410,7 +441,7 @@ private fun CoupleProfileHero(
                         )
                     }
                     Text(
-                        text = "Together since May 20, 2024",
+                        text = "Together since $relationshipStartDateText",
                         style = MaterialTheme.typography.bodySmall,
                         color = palette.mutedInk,
                     )
@@ -471,16 +502,6 @@ private fun CoupleNameDialog(
     onSave: (String) -> Unit,
 ) {
     var draft by remember(currentName) { mutableStateOf(currentName) }
-    val suggestions = remember {
-        listOf(
-            "Babe & Honey",
-            "Lovebirds",
-            "Mahal",
-            "My Person",
-            "Forever Us",
-            "Besties",
-        )
-    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -493,27 +514,12 @@ private fun CoupleNameDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                AppTextField(
-                    value = draft,
-                    onValueChange = { draft = it.take(32) },
-                    label = "Babe, Honey, Lovebirds...",
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    suggestions.forEach { suggestion ->
-                        CoupleNameSuggestionChip(
-                            label = suggestion,
-                            selected = draft == suggestion,
-                            palette = palette,
-                            onClick = { draft = suggestion },
-                        )
-                    }
-                }
-            }
+            AppTextField(
+                value = draft,
+                onValueChange = { draft = it.take(32) },
+                label = "Babe, Honey, Lovebirds...",
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+            )
         },
         confirmButton = {
             Button(
@@ -546,28 +552,79 @@ private fun CoupleNameDialog(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CoupleNameSuggestionChip(
-    label: String,
-    selected: Boolean,
+private fun RelationshipStartDateDialog(
+    currentDate: String,
+    isSaving: Boolean,
     palette: XendPalette,
-    onClick: () -> Unit,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
 ) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(999.dp),
-        color = if (selected) palette.primarySoft else palette.surfaceSoft,
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (selected) palette.primary.copy(alpha = 0.32f) else palette.outline,
+    val todayMillis = remember { Clock.System.now().toEpochMilliseconds() }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = currentDate.toUtcMillisOrNull() ?: todayMillis,
+    )
+    val selectedMillis = datePickerState.selectedDateMillis
+    val isValid = selectedMillis != null && selectedMillis <= todayMillis
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = {
+                    selectedMillis?.toIsoDateOrNull()?.let(onSave)
+                },
+                enabled = isValid && !isSaving,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = palette.primary,
+                    contentColor = Color.White,
+                ),
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Text("Save")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "Cancel",
+                    color = palette.mutedInk,
+                )
+            }
+        },
+        colors = androidx.compose.material3.DatePickerDefaults.colors(
+            containerColor = palette.surface,
         ),
     ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = if (selected) palette.primary else palette.ink,
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            DatePicker(
+                state = datePickerState,
+                title = {
+                    Text(
+                        text = "Relationship Start Date",
+                        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 20.dp),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = palette.ink,
+                    )
+                },
+            )
+            if (selectedMillis != null && selectedMillis > todayMillis) {
+                Text(
+                    text = "Choose today or an earlier date.",
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.primary,
+                )
+            }
+        }
     }
 }
 
@@ -1024,4 +1081,49 @@ private fun SettingsIconBox(
             modifier = Modifier.size(21.dp),
         )
     }
+}
+
+private fun formatRelationshipStartDate(isoDate: String, fallbackEpochSeconds: Long?): String {
+    val date = parseIsoDateOrNull(isoDate)
+        ?: fallbackEpochSeconds?.let { epoch ->
+            Instant.fromEpochSeconds(epoch)
+                .toLocalDateTime(TimeZone.currentSystemDefault())
+                .date
+        }
+        ?: return "Set date"
+    return "${date.monthDisplayName()} ${date.day}, ${date.year}"
+}
+
+private fun parseIsoDateOrNull(value: String): LocalDate? {
+    return runCatching { LocalDate.parse(value) }.getOrNull()
+}
+
+private fun String.toUtcMillisOrNull(): Long? {
+    return parseIsoDateOrNull(this)
+        ?.atStartOfDayIn(TimeZone.UTC)
+        ?.toEpochMilliseconds()
+}
+
+private fun Long.toIsoDateOrNull(): String? {
+    return runCatching {
+        Instant.fromEpochMilliseconds(this)
+            .toLocalDateTime(TimeZone.UTC)
+            .date
+            .toString()
+    }.getOrNull()
+}
+
+private fun LocalDate.monthDisplayName(): String = when (month) {
+    Month.JANUARY -> "January"
+    Month.FEBRUARY -> "February"
+    Month.MARCH -> "March"
+    Month.APRIL -> "April"
+    Month.MAY -> "May"
+    Month.JUNE -> "June"
+    Month.JULY -> "July"
+    Month.AUGUST -> "August"
+    Month.SEPTEMBER -> "September"
+    Month.OCTOBER -> "October"
+    Month.NOVEMBER -> "November"
+    Month.DECEMBER -> "December"
 }

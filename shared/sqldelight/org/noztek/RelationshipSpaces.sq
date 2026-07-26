@@ -6,6 +6,7 @@ CREATE TABLE RelationshipSpaces (
     current_level_name TEXT NOT NULL DEFAULT 'Tease',
     cover_photo_url TEXT,
     couple_photo_url TEXT,
+    relationship_start_date TEXT NOT NULL,
     is_default INTEGER NOT NULL DEFAULT 0,
     access_hint TEXT,
     access_configured INTEGER NOT NULL DEFAULT 0,
@@ -23,6 +24,7 @@ INSERT OR REPLACE INTO RelationshipSpaces(
     current_level_name,
     cover_photo_url,
     couple_photo_url,
+    relationship_start_date,
     is_default,
     access_hint,
     access_configured,
@@ -30,7 +32,7 @@ INSERT OR REPLACE INTO RelationshipSpaces(
     created_at,
     updated_at
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 selectRelationshipSpaceById:
 SELECT * FROM RelationshipSpaces WHERE relationship_space_id = ?;
