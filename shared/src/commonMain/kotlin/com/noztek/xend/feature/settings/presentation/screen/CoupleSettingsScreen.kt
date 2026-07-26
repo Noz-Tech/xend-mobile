@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -20,14 +21,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,9 +45,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -55,20 +65,30 @@ import com.composables.icons.heroicons.outline.Link
 import com.composables.icons.heroicons.outline.LockClosed
 import com.composables.icons.heroicons.outline.Pencil
 import com.composables.icons.heroicons.outline.User
+import com.noztek.xend.core.ui.components.AppTextField
+import com.noztek.xend.core.ui.media.rememberImagePickerLauncher
 import com.noztek.xend.core.ui.theme.XendPalette
 import com.noztek.xend.core.ui.theme.XendTheme
-import org.jetbrains.compose.resources.painterResource
-import xend.shared.generated.resources.Res
-import xend.shared.generated.resources.couple
-import xend.shared.generated.resources.couple_cover
+import com.noztek.xend.feature.settings.presentation.viewmodel.CoupleSettingsViewModel
+import org.koin.compose.koinInject
 
 @Composable
 fun CoupleSettingsScreen(
     onBackClick: () -> Unit,
+    viewModel: CoupleSettingsViewModel = koinInject(),
 ) {
+    val state by viewModel.state.collectAsState()
     val palette = XendTheme.palette
     var monthsaryEnabled by remember { mutableStateOf(true) }
     var anniversaryEnabled by remember { mutableStateOf(true) }
+    var isNameDialogOpen by remember { mutableStateOf(false) }
+    val coupleName = state.space?.name?.takeIf { it.isNotBlank() } ?: "Couple Space"
+    val coverPhotoPicker = rememberImagePickerLauncher(
+        onPicked = viewModel::uploadCover,
+    )
+    val couplePhotoPicker = rememberImagePickerLauncher(
+        onPicked = viewModel::uploadCouplePhoto,
+    )
 
     Column(
         modifier = Modifier
@@ -83,13 +103,31 @@ fun CoupleSettingsScreen(
             onBackClick = onBackClick,
         )
 
-        CoupleProfileHero(palette = palette)
+        CoupleProfileHero(
+            coupleName = coupleName,
+            coverPhoto = state.coverPhoto,
+            couplePhoto = state.couplePhoto,
+            isUploadingCoverPhoto = state.isUploadingCoverPhoto,
+            isUploadingCouplePhoto = state.isUploadingCouplePhoto,
+            palette = palette,
+            onEditCoverClick = coverPhotoPicker,
+            onEditPhotoClick = couplePhotoPicker,
+            onEditNameClick = { isNameDialogOpen = true },
+        )
 
         CoupleSettingsSection(
             title = "Relationship",
             icon = Heroicons.Outline.Heart,
             palette = palette,
         ) {
+            CoupleSettingsRow(
+                icon = Heroicons.Outline.Pencil,
+                title = "Couple Name",
+                subtitle = coupleName,
+                palette = palette,
+                onClick = { isNameDialogOpen = true },
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             CoupleSettingsRow(
                 icon = Heroicons.Outline.CalendarDays,
                 title = "Relationship Start Date",
@@ -105,6 +143,18 @@ fun CoupleSettingsScreen(
             onAnniversaryChanged = { anniversaryEnabled = it },
             palette = palette,
         )
+
+        state.message?.takeIf { it.isNotBlank() }?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = palette.primary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = viewModel::consumeMessage),
+                textAlign = TextAlign.Center,
+            )
+        }
 
         CoupleSettingsSection(
             title = "Connection",
@@ -143,6 +193,19 @@ fun CoupleSettingsScreen(
                 textAlign = TextAlign.Start,
             )
         }
+    }
+
+    if (isNameDialogOpen) {
+        CoupleNameDialog(
+            currentName = coupleName,
+            isSaving = state.isSavingName,
+            palette = palette,
+            onDismiss = { isNameDialogOpen = false },
+            onSave = { name ->
+                viewModel.saveName(name)
+                isNameDialogOpen = false
+            },
+        )
     }
 }
 
@@ -193,7 +256,15 @@ private fun CoupleSettingsHeader(
 
 @Composable
 private fun CoupleProfileHero(
+    coupleName: String,
+    coverPhoto: ImageBitmap?,
+    couplePhoto: ImageBitmap?,
+    isUploadingCoverPhoto: Boolean,
+    isUploadingCouplePhoto: Boolean,
     palette: XendPalette,
+    onEditCoverClick: () -> Unit,
+    onEditPhotoClick: () -> Unit,
+    onEditNameClick: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -207,12 +278,16 @@ private fun CoupleProfileHero(
                     .fillMaxWidth()
                     .aspectRatio(2.9f),
             ) {
-                Image(
-                    painter = painterResource(Res.drawable.couple_cover),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
+                if (coverPhoto != null) {
+                    Image(
+                        bitmap = coverPhoto,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                } else {
+                    CoupleCoverPlaceholder(palette = palette)
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -230,17 +305,26 @@ private fun CoupleProfileHero(
                         .align(Alignment.TopEnd)
                         .padding(12.dp)
                         .size(44.dp),
+                    onClick = onEditCoverClick,
                     shape = CircleShape,
                     color = palette.surface.copy(alpha = 0.94f),
                     shadowElevation = 4.dp,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Heroicons.Outline.Pencil,
-                            contentDescription = "Edit cover",
-                            tint = palette.primary,
-                            modifier = Modifier.size(20.dp),
-                        )
+                        if (isUploadingCoverPhoto) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = palette.primary,
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Heroicons.Outline.Pencil,
+                                contentDescription = "Edit cover",
+                                tint = palette.primary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -261,12 +345,16 @@ private fun CoupleProfileHero(
                     border = BorderStroke(4.dp, palette.surface),
                     shadowElevation = 4.dp,
                 ) {
-                    Image(
-                        painter = painterResource(Res.drawable.couple),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
+                    if (couplePhoto != null) {
+                        Image(
+                            bitmap = couplePhoto,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                        )
+                    } else {
+                        CouplePhotoPlaceholder(palette = palette)
+                    }
                 }
                 Surface(
                     modifier = Modifier
@@ -274,17 +362,26 @@ private fun CoupleProfileHero(
                         .offset(x = 32.dp, y = 14.dp)
                         .size(36.dp)
                         .zIndex(2f),
+                    onClick = onEditPhotoClick,
                     shape = CircleShape,
                     color = palette.surface,
                     shadowElevation = 3.dp,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Heroicons.Outline.Camera,
-                            contentDescription = "Change photo",
-                            tint = palette.primary,
-                            modifier = Modifier.size(18.dp),
-                        )
+                        if (isUploadingCouplePhoto) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = palette.primary,
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Heroicons.Outline.Camera,
+                                contentDescription = "Change photo",
+                                tint = palette.primary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
                     }
                 }
 
@@ -296,11 +393,12 @@ private fun CoupleProfileHero(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Row(
+                        modifier = Modifier.clickable(onClick = onEditNameClick),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Alex & Sam",
+                            text = coupleName,
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                             color = palette.ink,
                         )
@@ -319,6 +417,157 @@ private fun CoupleProfileHero(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CoupleCoverPlaceholder(palette: XendPalette) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        palette.primarySoft,
+                        Color(0xFFFFF5F8),
+                        Color(0xFFF6F3FF),
+                    ),
+                ),
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Heroicons.Outline.Heart,
+            contentDescription = null,
+            tint = palette.primary.copy(alpha = 0.42f),
+            modifier = Modifier.size(34.dp),
+        )
+    }
+}
+
+@Composable
+private fun CouplePhotoPlaceholder(palette: XendPalette, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(palette.primarySoft),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Heroicons.Outline.Heart,
+            contentDescription = null,
+            tint = palette.primary.copy(alpha = 0.68f),
+            modifier = Modifier.size(30.dp),
+        )
+    }
+}
+
+@Composable
+private fun CoupleNameDialog(
+    currentName: String,
+    isSaving: Boolean,
+    palette: XendPalette,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    var draft by remember(currentName) { mutableStateOf(currentName) }
+    val suggestions = remember {
+        listOf(
+            "Babe & Honey",
+            "Lovebirds",
+            "Mahal",
+            "My Person",
+            "Forever Us",
+            "Besties",
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = palette.surface,
+        title = {
+            Text(
+                text = "Couple Name",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = palette.ink,
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                AppTextField(
+                    value = draft,
+                    onValueChange = { draft = it.take(32) },
+                    label = "Babe, Honey, Lovebirds...",
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    suggestions.forEach { suggestion ->
+                        CoupleNameSuggestionChip(
+                            label = suggestion,
+                            selected = draft == suggestion,
+                            palette = palette,
+                            onClick = { draft = suggestion },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(draft.trim()) },
+                enabled = draft.isNotBlank() && !isSaving,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = palette.primary,
+                    contentColor = Color.White,
+                ),
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Text("Save")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "Cancel",
+                    color = palette.mutedInk,
+                )
+            }
+        },
+    )
+}
+
+@Composable
+private fun CoupleNameSuggestionChip(
+    label: String,
+    selected: Boolean,
+    palette: XendPalette,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(999.dp),
+        color = if (selected) palette.primarySoft else palette.surfaceSoft,
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (selected) palette.primary.copy(alpha = 0.32f) else palette.outline,
+        ),
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = if (selected) palette.primary else palette.ink,
+        )
     }
 }
 
@@ -437,6 +686,7 @@ private fun CoupleSettingsRow(
     title: String,
     subtitle: String,
     palette: XendPalette,
+    onClick: () -> Unit = {},
     iconColor: Color = palette.primary.copy(alpha = 0.78f),
     iconBackground: Color = palette.primarySoft,
     titleColor: Color = palette.ink,
@@ -446,7 +696,7 @@ private fun CoupleSettingsRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { },
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         color = containerColor,
         shadowElevation = 0.5.dp,
@@ -670,14 +920,13 @@ private fun PartnerProfileRow(palette: XendPalette) {
                 color = palette.mutedInk,
             )
         }
-        Image(
-            painter = painterResource(Res.drawable.couple),
-            contentDescription = null,
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape),
-            contentScale = ContentScale.Crop,
-        )
+        Surface(
+            modifier = Modifier.size(44.dp),
+            shape = CircleShape,
+            color = palette.primarySoft,
+        ) {
+            CouplePhotoPlaceholder(palette = palette)
+        }
         Icon(
             imageVector = Heroicons.Outline.ChevronRight,
             contentDescription = null,

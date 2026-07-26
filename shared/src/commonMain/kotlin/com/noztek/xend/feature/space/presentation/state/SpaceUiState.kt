@@ -1,5 +1,6 @@
 package com.noztek.xend.feature.space.presentation.state
 
+import androidx.compose.ui.graphics.ImageBitmap
 import com.noztek.xend.feature.space.domain.model.RelationshipSpaceCardModel
 import com.noztek.xend.feature.space.domain.model.SpaceHeroModel
 import com.noztek.xend.feature.space.domain.model.SpaceMoodModel
@@ -8,6 +9,7 @@ data class SpaceUiState(
     val isLoading: Boolean = true,
     val defaultSpace: RelationshipSpaceCardModel? = null,
     val hero: SpaceHeroModel? = null,
+    val couplePhoto: ImageBitmap? = null,
     val moods: List<SpaceMoodModel> = emptyList(),
     val todayRitual: SpaceTodayRitualModel? = null,
     val isSavingMood: Boolean = false,

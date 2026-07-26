@@ -1,20 +1,27 @@
 package com.noztek.xend.feature.space.data.remote
 
 import com.noztek.xend.core.utils.errorMessageParser
+import com.noztek.xend.core.ui.media.PickedImageData
+import com.noztek.xend.core.ui.media.decodeRemoteImageBitmap
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.ServerResponseException
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
+import io.ktor.utils.io.core.ByteReadPacket
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -28,6 +35,8 @@ data class SpaceDto(
     @SerialName("relationship_space_id") val relationshipSpaceId: String,
     @SerialName("conversation_id") val conversationId: String,
     val name: String? = null,
+    @SerialName("cover_photo_url") val coverPhotoUrl: String? = null,
+    @SerialName("couple_photo_url") val couplePhotoUrl: String? = null,
     @SerialName("created_by_user_id") val createdByUserId: String,
     @SerialName("current_level") val currentLevel: Int = 1,
     @SerialName("current_level_name") val currentLevelName: String = "Tease",
@@ -48,6 +57,11 @@ data class ConfigureSpaceAccessRequestDto(
 @Serializable
 data class UnlockSpaceRequestDto(
     val passphrase: String,
+)
+
+@Serializable
+data class UpdateSpaceSettingsRequestDto(
+    val name: String?,
 )
 
 @Serializable
@@ -151,6 +165,35 @@ class SpaceApi(
         }
     }
 
+    suspend fun updateSettings(accessToken: String, spaceId: String, name: String?): SpaceDto =
+        execute {
+            client.patch(url("/v1/relationship-spaces/$spaceId/settings")) {
+                header(HttpHeaders.Authorization, "Bearer $accessToken")
+                contentType(ContentType.Application.Json)
+                setBody(UpdateSpaceSettingsRequestDto(name = name))
+            }
+        }
+
+    suspend fun uploadCoverPhoto(accessToken: String, spaceId: String, image: PickedImageData): SpaceDto =
+        uploadSpaceImage(accessToken = accessToken, spaceId = spaceId, endpoint = "cover-photo", image = image)
+
+    suspend fun uploadCouplePhoto(accessToken: String, spaceId: String, image: PickedImageData): SpaceDto =
+        uploadSpaceImage(accessToken = accessToken, spaceId = spaceId, endpoint = "couple-photo", image = image)
+
+    suspend fun getSpaceMediaImage(accessToken: String, spaceId: String, kind: String) = try {
+        val bytes: ByteArray = client.get(url("/v1/relationship-spaces/$spaceId/media/$kind")) {
+            header(HttpHeaders.Authorization, "Bearer $accessToken")
+        }.body()
+        require(bytes.isNotEmpty()) { "Relationship space image is empty." }
+        requireNotNull(decodeRemoteImageBitmap(bytes)) { "Unable to decode relationship space image." }
+    } catch (e: ClientRequestException) {
+        throw Exception(errorMessageParser(e.response.bodyAsText()))
+    } catch (e: ServerResponseException) {
+        throw Exception("Server error: ${e.response.status.value}")
+    } catch (e: Exception) {
+        throw Exception(e.message ?: "Unexpected network error")
+    }
+
     suspend fun configureSpaceAccess(accessToken: String, spaceId: String, passphrase: String, hint: String?) {
         execute<Unit> {
             client.put(url("/v1/relationship-spaces/$spaceId/access-lock")) {
@@ -169,6 +212,33 @@ class SpaceApi(
                 setBody(UnlockSpaceRequestDto(passphrase = passphrase))
             }
         }
+
+    private suspend fun uploadSpaceImage(
+        accessToken: String,
+        spaceId: String,
+        endpoint: String,
+        image: PickedImageData,
+    ): SpaceDto = execute {
+        client.post(url("/v1/relationship-spaces/$spaceId/$endpoint")) {
+            header(HttpHeaders.Authorization, "Bearer $accessToken")
+            setBody(
+                MultiPartFormDataContent(
+                    formData {
+                        appendInput(
+                            key = "image",
+                            headers = Headers.build {
+                                append(HttpHeaders.ContentDisposition, "filename=\"${image.fileName}\"")
+                                append(HttpHeaders.ContentType, image.mimeType)
+                            },
+                            size = image.bytes.size.toLong(),
+                        ) {
+                            ByteReadPacket(image.bytes)
+                        }
+                    },
+                ),
+            )
+        }
+    }
 
     private suspend inline fun <reified T> execute(block: () -> HttpResponse): T {
         return try {

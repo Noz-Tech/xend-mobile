@@ -1,5 +1,8 @@
 package com.noztek.xend.feature.space.presentation.screen
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -17,14 +20,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -41,9 +41,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -56,8 +57,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.composables.icons.heroicons.Heroicons
-import com.composables.icons.heroicons.outline.CalendarDays
-import com.composables.icons.heroicons.outline.ChatBubbleLeftRight
 import com.composables.icons.heroicons.outline.ChevronDown
 import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.FaceSmile
@@ -66,7 +65,6 @@ import com.composables.icons.heroicons.outline.Heart
 import com.composables.icons.heroicons.outline.LockClosed
 import com.composables.icons.heroicons.outline.Sparkles
 import com.composables.icons.heroicons.outline.Sun
-import com.composables.icons.heroicons.outline.Trophy
 import com.composables.icons.heroicons.solid.CalendarDays
 import com.composables.icons.heroicons.solid.ChatBubbleLeftRight
 import com.composables.icons.heroicons.solid.Fire
@@ -81,8 +79,6 @@ import com.noztek.xend.feature.space.presentation.viewmodel.SpaceViewModel
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import xend.shared.generated.resources.Res
-import xend.shared.generated.resources.couple
-import xend.shared.generated.resources.couple_1
 import xend.shared.generated.resources.pet
 
 private data class MoodPreviewModel(
@@ -260,6 +256,7 @@ fun SpaceScreen(
         item {
             HeroGreetingSection(
                 hero = hero,
+                couplePhoto = state.couplePhoto,
                 palette = palette,
                 collapseProgress = heroCollapseProgress,
             )
@@ -331,6 +328,7 @@ fun SpaceScreen(
 @Composable
 private fun HeroGreetingSection(
     hero: SpaceHeroModel,
+    couplePhoto: ImageBitmap?,
     palette: XendPalette,
     collapseProgress: Float,
 ) {
@@ -397,12 +395,28 @@ private fun HeroGreetingSection(
                 border = BorderStroke(4.dp, Color.White),
                 shadowElevation = 3.dp,
             ) {
-                Image(
-                    painter = painterResource(Res.drawable.couple),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
+                if (couplePhoto != null) {
+                    Image(
+                        bitmap = couplePhoto,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(palette.primarySoft),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Heroicons.Outline.FaceSmile,
+                            contentDescription = null,
+                            tint = palette.primary.copy(alpha = 0.72f),
+                            modifier = Modifier.size(34.dp),
+                        )
+                    }
+                }
             }
         }
         Row(

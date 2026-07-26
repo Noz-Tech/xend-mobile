@@ -17,6 +17,7 @@ import com.noztek.xend.feature.dailycheckin.presentation.viewmodel.DailyCheckInV
 import com.noztek.xend.feature.dailyritual.presentation.viewmodel.DailyRitualViewModel
 import com.noztek.xend.feature.challenges.presentation.viewmodel.ChallengesViewModel
 import com.noztek.xend.feature.games.presentation.viewmodel.GamesViewModel
+import com.noztek.xend.feature.settings.presentation.viewmodel.CoupleSettingsViewModel
 import com.noztek.xend.feature.settings.presentation.viewmodel.SettingsViewModel
 import com.noztek.xend.feature.space.presentation.viewmodel.HiddenSpacesViewModel
 import com.noztek.xend.feature.space.presentation.viewmodel.SpaceViewModel
@@ -99,6 +100,17 @@ val presentationModule = module {
         )
     }
     factory {
+        CoupleSettingsViewModel(
+            getDefaultRelationshipSpace = get(),
+            syncRelationshipSpaces = get(),
+            updateRelationshipSpaceSettings = get(),
+            uploadCoverPhotoUseCase = get(),
+            uploadCouplePhotoUseCase = get(),
+            getSpaceMediaImage = get(),
+            realtimeSignals = get(),
+        )
+    }
+    factory {
         SpaceViewModel(
             getDefaultRelationshipSpace = get(),
             getDefaultSpaceHero = get(),
@@ -106,6 +118,7 @@ val presentationModule = module {
             setSpaceMood = get(),
             syncRelationshipSpaces = get(),
             getDailyRitualOverview = get(),
+            getSpaceMediaImage = get(),
             realtimeSignals = get(),
         )
     }

@@ -1,7 +1,5 @@
 package com.noztek.xend.feature.settings.presentation.screen
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,9 +29,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,10 +49,7 @@ import com.composables.icons.heroicons.outline.User
 import com.noztek.xend.core.ui.theme.XendPalette
 import com.noztek.xend.core.ui.theme.XendTheme
 import com.noztek.xend.feature.settings.presentation.viewmodel.SettingsViewModel
-import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
-import xend.shared.generated.resources.Res
-import xend.shared.generated.resources.couple
 
 @Composable
 fun SettingsScreen(
@@ -225,18 +218,20 @@ private fun CoupleSpaceSettingsRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Box(
+            Surface(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape),
-                contentAlignment = Alignment.Center,
+                    .size(48.dp),
+                shape = CircleShape,
+                color = palette.primarySoft,
             ) {
-                Image(
-                    painter = painterResource(Res.drawable.couple),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Heroicons.Outline.Heart,
+                        contentDescription = null,
+                        tint = palette.primary.copy(alpha = 0.72f),
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             }
 
             Column(

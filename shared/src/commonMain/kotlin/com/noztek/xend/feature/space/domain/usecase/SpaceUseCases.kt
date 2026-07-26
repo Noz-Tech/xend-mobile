@@ -1,5 +1,6 @@
 package com.noztek.xend.feature.space.domain.usecase
 
+import com.noztek.xend.core.ui.media.PickedImageData
 import com.noztek.xend.feature.auth.domain.usecase.GetCurrentUserProfileUseCase
 import com.noztek.xend.feature.message.data.local.dao.ConversationDao
 import com.noztek.xend.feature.space.data.local.dao.RelationshipSpaceDao
@@ -86,6 +87,36 @@ class ConfigureRelationshipSpaceAccessUseCase(
     }
 }
 
+class UpdateRelationshipSpaceSettingsUseCase(
+    private val repository: RelationshipSpaceRepository,
+) {
+    suspend operator fun invoke(spaceId: String, name: String?): RelationshipSpaceCardModel {
+        return repository.updateSpaceSettings(spaceId, name)
+    }
+}
+
+class UploadRelationshipSpaceCoverPhotoUseCase(
+    private val repository: RelationshipSpaceRepository,
+) {
+    suspend operator fun invoke(spaceId: String, image: PickedImageData): RelationshipSpaceCardModel {
+        return repository.uploadCoverPhoto(spaceId, image)
+    }
+}
+
+class UploadRelationshipSpaceCouplePhotoUseCase(
+    private val repository: RelationshipSpaceRepository,
+) {
+    suspend operator fun invoke(spaceId: String, image: PickedImageData): RelationshipSpaceCardModel {
+        return repository.uploadCouplePhoto(spaceId, image)
+    }
+}
+
+class GetRelationshipSpaceMediaImageUseCase(
+    private val repository: RelationshipSpaceRepository,
+) {
+    suspend operator fun invoke(spaceId: String, kind: String) = repository.getSpaceMediaImage(spaceId, kind)
+}
+
 class UnlockRelationshipSpaceUseCase(
     private val repository: RelationshipSpaceRepository,
 ) {
@@ -110,6 +141,8 @@ class SyncRelationshipSpacesUseCase(
                 createdByUserId = space.createdByUserId,
                 currentLevel = space.currentLevel,
                 currentLevelName = space.currentLevelName,
+                coverPhotoUrl = space.coverPhotoUrl,
+                couplePhotoUrl = space.couplePhotoUrl,
                 isDefault = space.isDefault,
                 accessHint = space.accessHint,
                 accessConfigured = space.accessConfigured,

@@ -6,6 +6,8 @@ data class RelationshipSpaceCardLocal(
     val relationshipSpaceId: String,
     val conversationId: String,
     val name: String,
+    val coverPhotoUrl: String?,
+    val couplePhotoUrl: String?,
     val currentLevel: Int,
     val currentLevelName: String,
     val currentPoints: Int,
@@ -26,6 +28,8 @@ class RelationshipSpaceDao(
         createdByUserId: String,
         currentLevel: Int,
         currentLevelName: String,
+        coverPhotoUrl: String?,
+        couplePhotoUrl: String?,
         isDefault: Boolean,
         accessHint: String?,
         accessConfigured: Boolean,
@@ -39,6 +43,8 @@ class RelationshipSpaceDao(
             created_by_user_id = createdByUserId,
             current_level = currentLevel.toLong(),
             current_level_name = currentLevelName,
+            cover_photo_url = coverPhotoUrl,
+            couple_photo_url = couplePhotoUrl,
             is_default = if (isDefault) 1 else 0,
             access_hint = accessHint,
             access_configured = if (accessConfigured) 1 else 0,
@@ -71,6 +77,9 @@ class RelationshipSpaceDao(
     fun getDefaultSpaceCard(): RelationshipSpaceCardLocal? =
         db.relationshipSpacesQueries.selectDefaultRelationshipSpace().executeAsOneOrNull()?.let(::toCard)
 
+    fun getSpaceCard(relationshipSpaceId: String): RelationshipSpaceCardLocal? =
+        db.relationshipSpacesQueries.selectRelationshipSpaceById(relationshipSpaceId).executeAsOneOrNull()?.let(::toCard)
+
     fun getHiddenSpaceCards(): List<RelationshipSpaceCardLocal> =
         db.relationshipSpacesQueries.selectHiddenRelationshipSpaces().executeAsList().map(::toCard)
 
@@ -87,6 +96,8 @@ class RelationshipSpaceDao(
                 ?.conversation_id
                 ?: "",
             name = space.name ?: "Unnamed Space",
+            coverPhotoUrl = space.cover_photo_url,
+            couplePhotoUrl = space.couple_photo_url,
             currentLevel = space.current_level.toInt(),
             currentLevelName = space.current_level_name,
             currentPoints = progress?.current_points?.toInt() ?: 0,

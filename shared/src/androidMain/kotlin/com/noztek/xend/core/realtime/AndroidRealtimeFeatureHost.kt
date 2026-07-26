@@ -64,6 +64,11 @@ class AndroidRealtimeFeatureHost(
                         bumpSpaceTick()
                     }
 
+                    "relationship_space_updated" -> {
+                        runCatching { syncRelationshipSpaces() }
+                        bumpSpaceTick()
+                    }
+
                     "relationship_mood_updated" -> {
                         bumpMoodTick()
                     }

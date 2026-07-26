@@ -1,9 +1,11 @@
 package com.noztek.xend.feature.space.data.impl
 
+import com.noztek.xend.core.ui.media.PickedImageData
 import com.noztek.xend.feature.auth.data.local.dao.AuthSessionDao
 import com.noztek.xend.feature.space.data.local.dao.RelationshipSpaceCardLocal
 import com.noztek.xend.feature.space.data.local.dao.RelationshipSpaceDao
 import com.noztek.xend.feature.space.data.remote.SpaceApi
+import com.noztek.xend.feature.space.data.remote.SpaceDto
 import com.noztek.xend.feature.space.data.remote.SpaceMoodDto
 import com.noztek.xend.feature.space.domain.model.RelationshipSpaceCardModel
 import com.noztek.xend.feature.space.domain.model.SpaceMoodModel
@@ -33,6 +35,34 @@ class RelationshipSpaceRepositoryImpl(
         api.setDefaultSpace(session.accessToken, spaceId)
     }
 
+    override suspend fun updateSpaceSettings(spaceId: String, name: String?): RelationshipSpaceCardModel {
+        val session = requireNotNull(authSessionDao.getCurrentSession()) { "No active session" }
+        val space = api.updateSettings(session.accessToken, spaceId, name)
+        upsertSpace(space)
+        return toModel(requireNotNull(dao.getSpaceCard(space.relationshipSpaceId)) { "Relationship space update failed" })
+    }
+
+    override suspend fun uploadCoverPhoto(spaceId: String, image: PickedImageData): RelationshipSpaceCardModel {
+        val session = requireNotNull(authSessionDao.getCurrentSession()) { "No active session" }
+        val space = api.uploadCoverPhoto(session.accessToken, spaceId, image)
+        upsertSpace(space)
+        return toModel(requireNotNull(dao.getSpaceCard(space.relationshipSpaceId)) { "Relationship space update failed" })
+    }
+
+    override suspend fun uploadCouplePhoto(spaceId: String, image: PickedImageData): RelationshipSpaceCardModel {
+        val session = requireNotNull(authSessionDao.getCurrentSession()) { "No active session" }
+        val space = api.uploadCouplePhoto(session.accessToken, spaceId, image)
+        upsertSpace(space)
+        return toModel(requireNotNull(dao.getSpaceCard(space.relationshipSpaceId)) { "Relationship space update failed" })
+    }
+
+    override suspend fun getSpaceMediaImage(spaceId: String, kind: String) =
+        api.getSpaceMediaImage(
+            accessToken = requireNotNull(authSessionDao.getCurrentSession()) { "No active session" }.accessToken,
+            spaceId = spaceId,
+            kind = kind,
+        )
+
     override suspend fun configureSpaceAccess(spaceId: String, passphrase: String, hint: String?) {
         val session = requireNotNull(authSessionDao.getCurrentSession()) { "No active session" }
         api.configureSpaceAccess(session.accessToken, spaceId, passphrase, hint)
@@ -41,23 +71,13 @@ class RelationshipSpaceRepositoryImpl(
     override suspend fun unlockSpace(passphrase: String): RelationshipSpaceCardModel {
         val session = requireNotNull(authSessionDao.getCurrentSession()) { "No active session" }
         val space = api.unlockSpace(session.accessToken, passphrase)
-        dao.upsertSpace(
-            relationshipSpaceId = space.relationshipSpaceId,
-            name = space.name,
-            createdByUserId = space.createdByUserId,
-            currentLevel = space.currentLevel,
-            currentLevelName = space.currentLevelName,
-            isDefault = space.isDefault,
-            accessHint = space.accessHint,
-            accessConfigured = space.accessConfigured,
-            archivedAt = space.archivedAt,
-            createdAt = space.createdAt,
-            updatedAt = space.updatedAt,
-        )
+        upsertSpace(space)
         return RelationshipSpaceCardModel(
             relationshipSpaceId = space.relationshipSpaceId,
             conversationId = space.conversationId,
             name = space.name ?: "Unnamed Space",
+            coverPhotoUrl = space.coverPhotoUrl,
+            couplePhotoUrl = space.couplePhotoUrl,
             currentLevel = space.currentLevel,
             currentLevelName = space.currentLevelName,
             currentPoints = 0,
@@ -70,11 +90,31 @@ class RelationshipSpaceRepositoryImpl(
         )
     }
 
+    private fun upsertSpace(space: SpaceDto) {
+        dao.upsertSpace(
+            relationshipSpaceId = space.relationshipSpaceId,
+            name = space.name,
+            createdByUserId = space.createdByUserId,
+            currentLevel = space.currentLevel,
+            currentLevelName = space.currentLevelName,
+            coverPhotoUrl = space.coverPhotoUrl,
+            couplePhotoUrl = space.couplePhotoUrl,
+            isDefault = space.isDefault,
+            accessHint = space.accessHint,
+            accessConfigured = space.accessConfigured,
+            archivedAt = space.archivedAt,
+            createdAt = space.createdAt,
+            updatedAt = space.updatedAt,
+        )
+    }
+
     private fun toModel(local: RelationshipSpaceCardLocal): RelationshipSpaceCardModel {
         return RelationshipSpaceCardModel(
             relationshipSpaceId = local.relationshipSpaceId,
             conversationId = local.conversationId,
             name = local.name,
+            coverPhotoUrl = local.coverPhotoUrl,
+            couplePhotoUrl = local.couplePhotoUrl,
             currentLevel = local.currentLevel,
             currentLevelName = local.currentLevelName,
             currentPoints = local.currentPoints,

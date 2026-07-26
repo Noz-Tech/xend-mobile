@@ -9,10 +9,14 @@ import com.noztek.xend.feature.space.domain.usecase.GetCurrentSpaceMoodsUseCase
 import com.noztek.xend.feature.space.domain.usecase.GetDefaultSpaceHeroUseCase
 import com.noztek.xend.feature.space.domain.usecase.GetDefaultRelationshipSpaceUseCase
 import com.noztek.xend.feature.space.domain.usecase.GetHiddenRelationshipSpacesUseCase
+import com.noztek.xend.feature.space.domain.usecase.GetRelationshipSpaceMediaImageUseCase
 import com.noztek.xend.feature.space.domain.usecase.SetDefaultRelationshipSpaceUseCase
 import com.noztek.xend.feature.space.domain.usecase.SetSpaceMoodUseCase
 import com.noztek.xend.feature.space.domain.usecase.SyncRelationshipSpacesUseCase
 import com.noztek.xend.feature.space.domain.usecase.UnlockRelationshipSpaceUseCase
+import com.noztek.xend.feature.space.domain.usecase.UpdateRelationshipSpaceSettingsUseCase
+import com.noztek.xend.feature.space.domain.usecase.UploadRelationshipSpaceCouplePhotoUseCase
+import com.noztek.xend.feature.space.domain.usecase.UploadRelationshipSpaceCoverPhotoUseCase
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
@@ -35,6 +39,10 @@ val spaceModule = module {
     factory { SetSpaceMoodUseCase(get()) }
     factory { SetDefaultRelationshipSpaceUseCase(get()) }
     factory { ConfigureRelationshipSpaceAccessUseCase(get()) }
+    factory { UpdateRelationshipSpaceSettingsUseCase(get()) }
+    factory { UploadRelationshipSpaceCoverPhotoUseCase(get()) }
+    factory { UploadRelationshipSpaceCouplePhotoUseCase(get()) }
+    factory { GetRelationshipSpaceMediaImageUseCase(get()) }
     factory { UnlockRelationshipSpaceUseCase(get()) }
     factory {
         SyncRelationshipSpacesUseCase(
