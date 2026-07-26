@@ -1,0 +1,2 @@
+ALTER TABLE RelationshipSpaces ADD COLUMN celebrate_monthsary INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE RelationshipSpaces ADD COLUMN celebrate_anniversary INTEGER NOT NULL DEFAULT 1;

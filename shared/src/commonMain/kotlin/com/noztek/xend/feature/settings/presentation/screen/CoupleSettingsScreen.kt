@@ -64,7 +64,6 @@ import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.Gift
 import com.composables.icons.heroicons.outline.Heart
 import com.composables.icons.heroicons.outline.InformationCircle
-import com.composables.icons.heroicons.outline.Link
 import com.composables.icons.heroicons.outline.LockClosed
 import com.composables.icons.heroicons.outline.Pencil
 import com.composables.icons.heroicons.outline.User
@@ -89,8 +88,6 @@ fun CoupleSettingsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val palette = XendTheme.palette
-    var monthsaryEnabled by remember { mutableStateOf(true) }
-    var anniversaryEnabled by remember { mutableStateOf(true) }
     var isNameDialogOpen by remember { mutableStateOf(false) }
     var isStartDateDialogOpen by remember { mutableStateOf(false) }
     val coupleName = state.space?.name?.takeIf { it.isNotBlank() } ?: "Couple Space"
@@ -123,6 +120,7 @@ fun CoupleSettingsScreen(
             coupleName = coupleName,
             coverPhoto = state.coverPhoto,
             couplePhoto = state.couplePhoto,
+            isLoadingCoverPhoto = state.isLoadingCoverPhoto,
             isUploadingCoverPhoto = state.isUploadingCoverPhoto,
             isUploadingCouplePhoto = state.isUploadingCouplePhoto,
             relationshipStartDateText = relationshipStartDateText,
@@ -132,33 +130,20 @@ fun CoupleSettingsScreen(
             onEditNameClick = { isNameDialogOpen = true },
         )
 
-        CoupleSettingsSection(
-            title = "Relationship",
-            icon = Heroicons.Outline.Heart,
+        RelationshipSettingsGroup(
+            coupleName = coupleName,
+            relationshipStartDateText = relationshipStartDateText,
             palette = palette,
-        ) {
-            CoupleSettingsRow(
-                icon = Heroicons.Outline.Pencil,
-                title = "Couple Name",
-                subtitle = coupleName,
-                palette = palette,
-                onClick = { isNameDialogOpen = true },
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            CoupleSettingsRow(
-                icon = Heroicons.Outline.CalendarDays,
-                title = "Relationship Start Date",
-                subtitle = relationshipStartDateText,
-                palette = palette,
-                onClick = { isStartDateDialogOpen = true },
-            )
-        }
+            onNameClick = { isNameDialogOpen = true },
+            onStartDateClick = { isStartDateDialogOpen = true },
+        )
 
         CelebrationSettingsCard(
-            monthsaryEnabled = monthsaryEnabled,
-            anniversaryEnabled = anniversaryEnabled,
-            onMonthsaryChanged = { monthsaryEnabled = it },
-            onAnniversaryChanged = { anniversaryEnabled = it },
+            monthsaryEnabled = state.space?.celebrateMonthsary ?: true,
+            anniversaryEnabled = state.space?.celebrateAnniversary ?: true,
+            savingKey = state.savingCelebrationKey,
+            onMonthsaryChanged = { viewModel.saveCelebrationSettings(celebrateMonthsary = it) },
+            onAnniversaryChanged = { viewModel.saveCelebrationSettings(celebrateAnniversary = it) },
             palette = palette,
         )
 
@@ -174,21 +159,7 @@ fun CoupleSettingsScreen(
             )
         }
 
-        CoupleSettingsSection(
-            title = "Connection",
-            icon = Heroicons.Outline.Link,
-            palette = palette,
-        ) {
-            ConnectionSettingsGroup(palette = palette)
-        }
-
-        CoupleSettingsSection(
-            title = "Space Management",
-            icon = Heroicons.Outline.Gift,
-            palette = palette,
-        ) {
-            SpaceManagementGroup(palette = palette)
-        }
+        SpaceManagementGroup(palette = palette)
 
         Row(
             modifier = Modifier
@@ -289,6 +260,7 @@ private fun CoupleProfileHero(
     coupleName: String,
     coverPhoto: ImageBitmap?,
     couplePhoto: ImageBitmap?,
+    isLoadingCoverPhoto: Boolean,
     isUploadingCoverPhoto: Boolean,
     isUploadingCouplePhoto: Boolean,
     relationshipStartDateText: String,
@@ -316,6 +288,8 @@ private fun CoupleProfileHero(
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                     )
+                } else if (isLoadingCoverPhoto) {
+                    CoupleCoverLoadingPlaceholder(palette = palette)
                 } else {
                     CoupleCoverPlaceholder(palette = palette)
                 }
@@ -472,6 +446,30 @@ private fun CoupleCoverPlaceholder(palette: XendPalette) {
             contentDescription = null,
             tint = palette.primary.copy(alpha = 0.42f),
             modifier = Modifier.size(34.dp),
+        )
+    }
+}
+
+@Composable
+private fun CoupleCoverLoadingPlaceholder(palette: XendPalette) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        palette.surfaceSoft,
+                        palette.primarySoft,
+                        palette.surfaceRaised,
+                    ),
+                ),
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(26.dp),
+            color = palette.primary,
+            strokeWidth = 2.5.dp,
         )
     }
 }
@@ -660,6 +658,7 @@ private fun CoupleSettingsSection(
 private fun CelebrationSettingsCard(
     monthsaryEnabled: Boolean,
     anniversaryEnabled: Boolean,
+    savingKey: String?,
     onMonthsaryChanged: (Boolean) -> Unit,
     onAnniversaryChanged: (Boolean) -> Unit,
     palette: XendPalette,
@@ -674,46 +673,38 @@ private fun CelebrationSettingsCard(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.Top,
-            ) {
-                SettingsIconBox(
-                    icon = Heroicons.Outline.Gift,
-                    iconColor = Color(0xFFE84C83),
-                    background = Color(0xFFFFEEF5),
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(
+                    text = "Celebrations",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = palette.ink,
                 )
-                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text(
-                        text = "Celebrations",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        color = palette.ink,
-                    )
-                    Text(
-                        text = "Choose what you want to celebrate.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = palette.mutedInk,
-                    )
-                }
+                Text(
+                    text = "Choose what you want to celebrate.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.mutedInk,
+                )
             }
             ToggleRow(
                 icon = Heroicons.Outline.Heart,
-                iconColor = Color(0xFFE84C83),
-                iconBackground = Color(0xFFFFEEF5),
+                iconColor = palette.primary.copy(alpha = 0.82f),
+                iconBackground = palette.primarySoft,
                 title = "Monthsary",
                 subtitle = "Celebrate every month",
                 checked = monthsaryEnabled,
+                enabled = savingKey != CELEBRATION_MONTHSARY_KEY,
                 onCheckedChange = onMonthsaryChanged,
                 palette = palette,
             )
             HorizontalDivider(color = palette.outline.copy(alpha = 0.62f), modifier = Modifier.padding(start = 54.dp))
             ToggleRow(
                 icon = Heroicons.Outline.Gift,
-                iconColor = Color(0xFFE59822),
-                iconBackground = Color(0xFFFFF4DF),
+                iconColor = palette.orange.copy(alpha = 0.86f),
+                iconBackground = palette.orangeSoft,
                 title = "Anniversary",
                 subtitle = "Celebrate every year",
                 checked = anniversaryEnabled,
+                enabled = savingKey != CELEBRATION_ANNIVERSARY_KEY,
                 onCheckedChange = onAnniversaryChanged,
                 palette = palette,
             )
@@ -738,77 +729,101 @@ private fun CelebrationSettingsCard(
 }
 
 @Composable
-private fun CoupleSettingsRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
+private fun RelationshipSettingsGroup(
+    coupleName: String,
+    relationshipStartDateText: String,
     palette: XendPalette,
-    onClick: () -> Unit = {},
-    iconColor: Color = palette.primary.copy(alpha = 0.78f),
-    iconBackground: Color = palette.primarySoft,
-    titleColor: Color = palette.ink,
-    containerColor: Color = palette.surface,
-    chevronColor: Color = palette.softInk,
+    onNameClick: () -> Unit,
+    onStartDateClick: () -> Unit,
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        color = containerColor,
-        shadowElevation = 0.5.dp,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            SettingsIconBox(
-                icon = icon,
-                iconColor = iconColor,
-                background = iconBackground,
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = titleColor,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = palette.mutedInk,
-                )
-            }
-            Icon(
-                imageVector = Heroicons.Outline.ChevronRight,
-                contentDescription = null,
-                tint = chevronColor,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun ConnectionSettingsGroup(palette: XendPalette) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = palette.surface,
         shadowElevation = 0.5.dp,
     ) {
-        Column {
-            StatusRow(palette = palette)
-            HorizontalDivider(
-                color = palette.outline.copy(alpha = 0.62f),
-                modifier = Modifier.padding(start = 66.dp),
-            )
-            PartnerProfileRow(palette = palette)
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(
+                    text = "Relationship",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = palette.ink,
+                )
+                Text(
+                    text = "Set your couple name and start date.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.mutedInk,
+                )
+            }
+            Column {
+                RelationshipSettingsRow(
+                    icon = Heroicons.Outline.Pencil,
+                    title = "Couple Name",
+                    subtitle = coupleName,
+                    palette = palette,
+                    onClick = onNameClick,
+                )
+                HorizontalDivider(
+                    color = palette.outline.copy(alpha = 0.62f),
+                    modifier = Modifier.padding(start = 52.dp),
+                )
+                RelationshipSettingsRow(
+                    icon = Heroicons.Outline.CalendarDays,
+                    title = "Relationship Start Date",
+                    subtitle = relationshipStartDateText,
+                    palette = palette,
+                    onClick = onStartDateClick,
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun RelationshipSettingsRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    palette: XendPalette,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SettingsIconBox(
+            icon = icon,
+            iconColor = palette.primary.copy(alpha = 0.78f),
+            background = palette.primarySoft,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = palette.ink,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = palette.mutedInk,
+            )
+        }
+        Icon(
+            imageVector = Heroicons.Outline.ChevronRight,
+            contentDescription = null,
+            tint = palette.softInk,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 
@@ -820,29 +835,59 @@ private fun SpaceManagementGroup(palette: XendPalette) {
         color = palette.surface,
         shadowElevation = 0.5.dp,
     ) {
-        Column {
-            ManagementActionRow(
-                icon = Heroicons.Outline.LockClosed,
-                title = "Take a Break",
-                subtitle = "Pause your space for a while",
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            SettingsGroupHeader(
+                title = "Space Management",
+                subtitle = "Locked options for changing your space.",
                 palette = palette,
-                iconColor = Color(0xFFE59822).copy(alpha = 0.42f),
-                iconBackground = Color(0xFFFFF4DF),
             )
-            HorizontalDivider(
-                color = palette.outline.copy(alpha = 0.62f),
-                modifier = Modifier.padding(start = 66.dp),
-            )
-            ManagementActionRow(
-                icon = Heroicons.Outline.Heart,
-                title = "Breakup",
-                subtitle = "End your space permanently",
-                palette = palette,
-                iconColor = Color(0xFFE33163).copy(alpha = 0.42f),
-                iconBackground = Color(0xFFFFE8F0),
-                titleColor = Color(0xFFB41638).copy(alpha = 0.5f),
-            )
+            Column {
+                ManagementActionRow(
+                    icon = Heroicons.Outline.LockClosed,
+                    title = "Take a Break",
+                    subtitle = "Pause your space for a while",
+                    palette = palette,
+                    iconColor = palette.orange.copy(alpha = 0.42f),
+                    iconBackground = palette.orangeSoft.copy(alpha = 0.62f),
+                )
+                HorizontalDivider(
+                    color = palette.outline.copy(alpha = 0.62f),
+                    modifier = Modifier.padding(start = 52.dp),
+                )
+                ManagementActionRow(
+                    icon = Heroicons.Outline.Heart,
+                    title = "Breakup",
+                    subtitle = "End your space permanently",
+                    palette = palette,
+                    iconColor = palette.primary.copy(alpha = 0.42f),
+                    iconBackground = palette.primarySoft.copy(alpha = 0.62f),
+                    titleColor = palette.primary.copy(alpha = 0.5f),
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun SettingsGroupHeader(
+    title: String,
+    subtitle: String,
+    palette: XendPalette,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+            color = palette.ink,
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = palette.mutedInk,
+        )
     }
 }
 
@@ -859,7 +904,7 @@ private fun ManagementActionRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 14.dp),
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -870,7 +915,7 @@ private fun ManagementActionRow(
         )
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(5.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Text(
                 text = title,
@@ -893,107 +938,6 @@ private fun ManagementActionRow(
 }
 
 @Composable
-private fun StatusRow(palette: XendPalette) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        SettingsIconBox(
-            icon = Heroicons.Outline.Link,
-            iconColor = palette.primary.copy(alpha = 0.78f),
-            background = palette.primarySoft,
-        )
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(5.dp),
-        ) {
-            Text(
-                text = "Space Status",
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = palette.ink,
-            )
-            Text(
-                text = "You're connected",
-                style = MaterialTheme.typography.bodySmall,
-                color = palette.mutedInk,
-            )
-        }
-        Surface(
-            shape = RoundedCornerShape(999.dp),
-            color = Color(0xFFEAF8ED),
-            border = BorderStroke(1.dp, Color(0xFFCFEFD6)),
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF2DBE4F)),
-                )
-                Text(
-                    text = "Connected",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color(0xFF1E9F3E),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PartnerProfileRow(palette: XendPalette) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { }
-            .padding(horizontal = 14.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        SettingsIconBox(
-            icon = Heroicons.Outline.User,
-            iconColor = palette.primary.copy(alpha = 0.78f),
-            background = palette.primarySoft,
-        )
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(5.dp),
-        ) {
-            Text(
-                text = "Partner Profile",
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = palette.ink,
-            )
-            Text(
-                text = "View your partner's profile",
-                style = MaterialTheme.typography.bodySmall,
-                color = palette.mutedInk,
-            )
-        }
-        Surface(
-            modifier = Modifier.size(44.dp),
-            shape = CircleShape,
-            color = palette.primarySoft,
-        ) {
-            CouplePhotoPlaceholder(palette = palette)
-        }
-        Icon(
-            imageVector = Heroicons.Outline.ChevronRight,
-            contentDescription = null,
-            tint = palette.softInk,
-            modifier = Modifier.size(20.dp),
-        )
-    }
-}
-
-@Composable
 private fun ToggleRow(
     icon: ImageVector,
     iconColor: Color,
@@ -1001,6 +945,7 @@ private fun ToggleRow(
     title: String,
     subtitle: String,
     checked: Boolean,
+    enabled: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     palette: XendPalette,
 ) {
@@ -1030,6 +975,7 @@ private fun ToggleRow(
         }
         CompactToggle(
             checked = checked,
+            enabled = enabled,
             onCheckedChange = onCheckedChange,
             palette = palette,
         )
@@ -1039,16 +985,22 @@ private fun ToggleRow(
 @Composable
 private fun CompactToggle(
     checked: Boolean,
+    enabled: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     palette: XendPalette,
 ) {
+    val trackColor = when {
+        !enabled -> palette.outline.copy(alpha = 0.42f)
+        checked -> palette.primary
+        else -> palette.outline.copy(alpha = 0.72f)
+    }
     Box(
         modifier = Modifier
             .width(42.dp)
             .height(24.dp)
             .clip(CircleShape)
-            .background(if (checked) palette.primary else palette.outline.copy(alpha = 0.72f))
-            .clickable { onCheckedChange(!checked) }
+            .background(trackColor)
+            .clickable(enabled = enabled) { onCheckedChange(!checked) }
             .padding(3.dp),
         contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
     ) {
@@ -1127,3 +1079,6 @@ private fun LocalDate.monthDisplayName(): String = when (month) {
     Month.NOVEMBER -> "November"
     Month.DECEMBER -> "December"
 }
+
+private const val CELEBRATION_MONTHSARY_KEY = "monthsary"
+private const val CELEBRATION_ANNIVERSARY_KEY = "anniversary"

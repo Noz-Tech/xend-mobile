@@ -102,8 +102,16 @@ class UpdateRelationshipSpaceSettingsUseCase(
         spaceId: String,
         name: String?,
         relationshipStartDate: String? = null,
+        celebrateMonthsary: Boolean? = null,
+        celebrateAnniversary: Boolean? = null,
     ): RelationshipSpaceCardModel {
-        return repository.updateSpaceSettings(spaceId, name, relationshipStartDate)
+        return repository.updateSpaceSettings(
+            spaceId = spaceId,
+            name = name,
+            relationshipStartDate = relationshipStartDate,
+            celebrateMonthsary = celebrateMonthsary,
+            celebrateAnniversary = celebrateAnniversary,
+        )
     }
 }
 
@@ -154,8 +162,12 @@ class SyncRelationshipSpacesUseCase(
                 currentLevel = space.currentLevel,
                 currentLevelName = space.currentLevelName,
                 coverPhotoUrl = space.coverPhotoUrl,
+                coverPhotoVersion = space.coverPhotoVersion,
                 couplePhotoUrl = space.couplePhotoUrl,
+                couplePhotoVersion = space.couplePhotoVersion,
                 relationshipStartDate = space.relationshipStartDate,
+                celebrateMonthsary = space.celebrateMonthsary,
+                celebrateAnniversary = space.celebrateAnniversary,
                 isDefault = space.isDefault,
                 accessHint = space.accessHint,
                 accessConfigured = space.accessConfigured,

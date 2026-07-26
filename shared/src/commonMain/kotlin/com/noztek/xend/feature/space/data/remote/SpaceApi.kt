@@ -36,8 +36,12 @@ data class SpaceDto(
     @SerialName("conversation_id") val conversationId: String,
     val name: String? = null,
     @SerialName("cover_photo_url") val coverPhotoUrl: String? = null,
+    @SerialName("cover_photo_version") val coverPhotoVersion: String? = null,
     @SerialName("couple_photo_url") val couplePhotoUrl: String? = null,
+    @SerialName("couple_photo_version") val couplePhotoVersion: String? = null,
     @SerialName("relationship_start_date") val relationshipStartDate: String = "",
+    @SerialName("celebrate_monthsary") val celebrateMonthsary: Boolean = true,
+    @SerialName("celebrate_anniversary") val celebrateAnniversary: Boolean = true,
     @SerialName("created_by_user_id") val createdByUserId: String,
     @SerialName("current_level") val currentLevel: Int = 1,
     @SerialName("current_level_name") val currentLevelName: String = "Tease",
@@ -64,6 +68,8 @@ data class UnlockSpaceRequestDto(
 data class UpdateSpaceSettingsRequestDto(
     val name: String?,
     @SerialName("relationship_start_date") val relationshipStartDate: String? = null,
+    @SerialName("celebrate_monthsary") val celebrateMonthsary: Boolean? = null,
+    @SerialName("celebrate_anniversary") val celebrateAnniversary: Boolean? = null,
 )
 
 @Serializable
@@ -172,6 +178,8 @@ class SpaceApi(
         spaceId: String,
         name: String?,
         relationshipStartDate: String? = null,
+        celebrateMonthsary: Boolean? = null,
+        celebrateAnniversary: Boolean? = null,
     ): SpaceDto =
         execute {
             client.patch(url("/v1/relationship-spaces/$spaceId/settings")) {
@@ -181,6 +189,8 @@ class SpaceApi(
                     UpdateSpaceSettingsRequestDto(
                         name = name,
                         relationshipStartDate = relationshipStartDate,
+                        celebrateMonthsary = celebrateMonthsary,
+                        celebrateAnniversary = celebrateAnniversary,
                     ),
                 )
             }

@@ -39,6 +39,8 @@ class RelationshipSpaceRepositoryImpl(
         spaceId: String,
         name: String?,
         relationshipStartDate: String?,
+        celebrateMonthsary: Boolean?,
+        celebrateAnniversary: Boolean?,
     ): RelationshipSpaceCardModel {
         val session = requireNotNull(authSessionDao.getCurrentSession()) { "No active session" }
         val space = api.updateSettings(
@@ -46,6 +48,8 @@ class RelationshipSpaceRepositoryImpl(
             spaceId = spaceId,
             name = name,
             relationshipStartDate = relationshipStartDate,
+            celebrateMonthsary = celebrateMonthsary,
+            celebrateAnniversary = celebrateAnniversary,
         )
         upsertSpace(space)
         return toModel(requireNotNull(dao.getSpaceCard(space.relationshipSpaceId)) { "Relationship space update failed" })
@@ -86,8 +90,12 @@ class RelationshipSpaceRepositoryImpl(
             conversationId = space.conversationId,
             name = space.name ?: "Unnamed Space",
             coverPhotoUrl = space.coverPhotoUrl,
+            coverPhotoVersion = space.coverPhotoVersion,
             couplePhotoUrl = space.couplePhotoUrl,
+            couplePhotoVersion = space.couplePhotoVersion,
             relationshipStartDate = space.relationshipStartDate,
+            celebrateMonthsary = space.celebrateMonthsary,
+            celebrateAnniversary = space.celebrateAnniversary,
             currentLevel = space.currentLevel,
             currentLevelName = space.currentLevelName,
             currentPoints = 0,
@@ -108,8 +116,12 @@ class RelationshipSpaceRepositoryImpl(
             currentLevel = space.currentLevel,
             currentLevelName = space.currentLevelName,
             coverPhotoUrl = space.coverPhotoUrl,
+            coverPhotoVersion = space.coverPhotoVersion,
             couplePhotoUrl = space.couplePhotoUrl,
+            couplePhotoVersion = space.couplePhotoVersion,
             relationshipStartDate = space.relationshipStartDate,
+            celebrateMonthsary = space.celebrateMonthsary,
+            celebrateAnniversary = space.celebrateAnniversary,
             isDefault = space.isDefault,
             accessHint = space.accessHint,
             accessConfigured = space.accessConfigured,
@@ -125,8 +137,12 @@ class RelationshipSpaceRepositoryImpl(
             conversationId = local.conversationId,
             name = local.name,
             coverPhotoUrl = local.coverPhotoUrl,
+            coverPhotoVersion = local.coverPhotoVersion,
             couplePhotoUrl = local.couplePhotoUrl,
+            couplePhotoVersion = local.couplePhotoVersion,
             relationshipStartDate = local.relationshipStartDate,
+            celebrateMonthsary = local.celebrateMonthsary,
+            celebrateAnniversary = local.celebrateAnniversary,
             currentLevel = local.currentLevel,
             currentLevelName = local.currentLevelName,
             currentPoints = local.currentPoints,

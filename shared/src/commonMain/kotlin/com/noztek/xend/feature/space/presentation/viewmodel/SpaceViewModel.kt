@@ -197,7 +197,10 @@ class SpaceViewModel(
     }
 
     private fun mediaCacheKey(space: RelationshipSpaceCardModel, kind: String): String {
-        return "${space.relationshipSpaceId}:$kind:${space.updatedAtEpochSeconds}"
+        val version = space.couplePhotoVersion
+            ?.takeIf { it.isNotBlank() }
+            ?: space.updatedAtEpochSeconds.toString()
+        return "${space.relationshipSpaceId}:$kind:$version"
     }
 
     private companion object {

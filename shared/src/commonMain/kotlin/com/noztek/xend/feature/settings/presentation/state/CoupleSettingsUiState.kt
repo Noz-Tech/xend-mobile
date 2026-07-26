@@ -7,6 +7,8 @@ data class CoupleSettingsUiState(
     val isLoading: Boolean = false,
     val isSavingName: Boolean = false,
     val isSavingRelationshipStartDate: Boolean = false,
+    val savingCelebrationKey: String? = null,
+    val isLoadingCoverPhoto: Boolean = false,
     val isUploadingCoverPhoto: Boolean = false,
     val isUploadingCouplePhoto: Boolean = false,
     val space: RelationshipSpaceCardModel? = null,

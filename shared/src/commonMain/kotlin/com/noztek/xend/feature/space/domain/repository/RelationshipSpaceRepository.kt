@@ -11,7 +11,13 @@ interface RelationshipSpaceRepository {
     suspend fun getCurrentMoods(spaceId: String): List<SpaceMoodModel>
     suspend fun setMood(spaceId: String, moodKey: String, emoji: String, label: String): List<SpaceMoodModel>
     suspend fun setDefaultSpace(spaceId: String)
-    suspend fun updateSpaceSettings(spaceId: String, name: String?, relationshipStartDate: String? = null): RelationshipSpaceCardModel
+    suspend fun updateSpaceSettings(
+        spaceId: String,
+        name: String?,
+        relationshipStartDate: String? = null,
+        celebrateMonthsary: Boolean? = null,
+        celebrateAnniversary: Boolean? = null,
+    ): RelationshipSpaceCardModel
     suspend fun uploadCoverPhoto(spaceId: String, image: PickedImageData): RelationshipSpaceCardModel
     suspend fun uploadCouplePhoto(spaceId: String, image: PickedImageData): RelationshipSpaceCardModel
     suspend fun getSpaceMediaImage(spaceId: String, kind: String): ImageBitmap

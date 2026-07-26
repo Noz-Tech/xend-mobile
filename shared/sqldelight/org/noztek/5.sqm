@@ -1,0 +1,2 @@
+ALTER TABLE RelationshipSpaces ADD COLUMN cover_photo_version TEXT;
+ALTER TABLE RelationshipSpaces ADD COLUMN couple_photo_version TEXT;

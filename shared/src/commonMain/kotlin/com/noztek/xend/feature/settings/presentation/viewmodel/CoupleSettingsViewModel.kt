@@ -32,6 +32,7 @@ class CoupleSettingsViewModel(
     private val _state = MutableStateFlow(CoupleSettingsUiState())
     val state: StateFlow<CoupleSettingsUiState> = _state.asStateFlow()
     private var loadedCoverPhotoKey: String? = null
+    private var requestedCoverPhotoKey: String? = null
     private var loadedCouplePhotoKey: String? = null
 
     init {
@@ -130,6 +131,58 @@ class CoupleSettingsViewModel(
         }
     }
 
+    fun saveCelebrationSettings(
+        celebrateMonthsary: Boolean? = null,
+        celebrateAnniversary: Boolean? = null,
+    ) {
+        val space = _state.value.space ?: return
+        val key = when {
+            celebrateMonthsary != null -> CELEBRATION_MONTHSARY_KEY
+            celebrateAnniversary != null -> CELEBRATION_ANNIVERSARY_KEY
+            else -> return
+        }
+        if (_state.value.savingCelebrationKey == key) return
+        val optimisticSpace = space.copy(
+            celebrateMonthsary = celebrateMonthsary ?: space.celebrateMonthsary,
+            celebrateAnniversary = celebrateAnniversary ?: space.celebrateAnniversary,
+        )
+
+        scope.launch {
+            _state.update {
+                it.copy(
+                    savingCelebrationKey = key,
+                    space = optimisticSpace,
+                    message = null,
+                )
+            }
+            runCatching {
+                updateRelationshipSpaceSettings(
+                    spaceId = space.relationshipSpaceId,
+                    name = space.name.trim().takeIf { it.isNotBlank() },
+                    relationshipStartDate = space.relationshipStartDate.takeIf { it.isNotBlank() },
+                    celebrateMonthsary = celebrateMonthsary,
+                    celebrateAnniversary = celebrateAnniversary,
+                )
+            }.onSuccess { updated ->
+                _state.update {
+                    it.copy(
+                        savingCelebrationKey = null,
+                        space = updated,
+                        message = null,
+                    )
+                }
+            }.onFailure { error ->
+                _state.update {
+                    it.copy(
+                        savingCelebrationKey = null,
+                        space = space,
+                        message = error.message ?: "Failed to update celebration settings.",
+                    )
+                }
+            }
+        }
+    }
+
     fun uploadCover(image: PickedImageData) {
         val space = _state.value.space ?: return
         if (_state.value.isUploadingCoverPhoto) return
@@ -216,7 +269,8 @@ class CoupleSettingsViewModel(
     private fun loadCoverPhoto(space: RelationshipSpaceCardModel) {
         if (space.coverPhotoUrl.isNullOrBlank()) {
             loadedCoverPhotoKey = null
-            _state.update { it.copy(coverPhoto = null) }
+            requestedCoverPhotoKey = null
+            _state.update { it.copy(coverPhoto = null, isLoadingCoverPhoto = false) }
             return
         }
 
@@ -226,16 +280,28 @@ class CoupleSettingsViewModel(
 
         RemoteImageMemoryCache.get(cacheKey)?.let { cached ->
             loadedCoverPhotoKey = cacheKey
-            _state.update { it.copy(coverPhoto = cached) }
+            requestedCoverPhotoKey = null
+            _state.update { it.copy(coverPhoto = cached, isLoadingCoverPhoto = false) }
             return
         }
 
+        if (requestedCoverPhotoKey == cacheKey) return
+        requestedCoverPhotoKey = cacheKey
+
         scope.launch {
+            _state.update { it.copy(isLoadingCoverPhoto = true) }
             runCatching { getSpaceMediaImage(space.relationshipSpaceId, COVER_PHOTO_KIND) }
                 .onSuccess { image ->
                     RemoteImageMemoryCache.put(cacheKey, image)
                     loadedCoverPhotoKey = cacheKey
-                    _state.update { it.copy(coverPhoto = image) }
+                    requestedCoverPhotoKey = null
+                    _state.update { it.copy(coverPhoto = image, isLoadingCoverPhoto = false) }
+                }
+                .onFailure {
+                    if (requestedCoverPhotoKey == cacheKey) {
+                        requestedCoverPhotoKey = null
+                        _state.update { current -> current.copy(isLoadingCoverPhoto = false) }
+                    }
                 }
         }
     }
@@ -268,11 +334,18 @@ class CoupleSettingsViewModel(
     }
 
     private fun mediaCacheKey(space: RelationshipSpaceCardModel, kind: String): String {
-        return "${space.relationshipSpaceId}:$kind:${space.updatedAtEpochSeconds}"
+        val version = when (kind) {
+            COVER_PHOTO_KIND -> space.coverPhotoVersion
+            COUPLE_PHOTO_KIND -> space.couplePhotoVersion
+            else -> null
+        }?.takeIf { it.isNotBlank() } ?: space.updatedAtEpochSeconds.toString()
+        return "${space.relationshipSpaceId}:$kind:$version"
     }
 
     private companion object {
         const val COVER_PHOTO_KIND = "cover-photo"
         const val COUPLE_PHOTO_KIND = "couple-photo"
+        const val CELEBRATION_MONTHSARY_KEY = "monthsary"
+        const val CELEBRATION_ANNIVERSARY_KEY = "anniversary"
     }
 }
