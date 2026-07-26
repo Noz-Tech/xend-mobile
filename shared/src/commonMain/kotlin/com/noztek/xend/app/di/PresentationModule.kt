@@ -67,6 +67,7 @@ val presentationModule = module {
             getOverview = get(),
             submitDailyCheckIn = get(),
             realtimeSignals = get(),
+            settings = get(),
         )
     }
     factory {

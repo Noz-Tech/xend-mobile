@@ -7,6 +7,7 @@ import com.noztek.xend.feature.dailycheckin.domain.usecase.GetDailyCheckInOvervi
 import com.noztek.xend.feature.dailycheckin.domain.usecase.SubmitDailyCheckInUseCase
 import com.noztek.xend.feature.dailycheckin.presentation.state.DailyCheckInCelebrationDialogModel
 import com.noztek.xend.feature.dailycheckin.presentation.state.DailyCheckInUiState
+import com.russhwolf.settings.Settings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,10 +18,11 @@ class DailyCheckInViewModel(
     private val getOverview: GetDailyCheckInOverviewUseCase,
     private val submitDailyCheckIn: SubmitDailyCheckInUseCase,
     private val realtimeSignals: RealtimeFeatureSignals,
+    private val settings: Settings,
 ) {
     private val scope = defaultViewModelScope()
     private val _state = MutableStateFlow(DailyCheckInUiState())
-    private var lastShownCelebrationKey: String? = null
+    private var lastShownCelebrationKey: String? = settings.getStringOrNull(KEY_LAST_SHOWN_CELEBRATION)
     val state: StateFlow<DailyCheckInUiState> = _state.asStateFlow()
 
     init {
@@ -86,6 +88,7 @@ class DailyCheckInViewModel(
         val shouldShowCelebration = celebration != null && celebration.key != lastShownCelebrationKey
         if (shouldShowCelebration) {
             lastShownCelebrationKey = celebration.key
+            settings.putString(KEY_LAST_SHOWN_CELEBRATION, celebration.key)
         }
 
         _state.update { current ->
@@ -130,5 +133,9 @@ class DailyCheckInViewModel(
             milestoneTitle = milestone?.title,
             milestoneBonusPoints = milestone?.bonusPoints,
         )
+    }
+
+    private companion object {
+        const val KEY_LAST_SHOWN_CELEBRATION = "daily_check_in.last_shown_celebration"
     }
 }

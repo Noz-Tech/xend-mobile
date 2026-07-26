@@ -35,6 +35,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -74,6 +75,7 @@ import org.koin.compose.koinInject
 @Composable
 fun DailyCheckInScreen(
     onHistoryClick: () -> Unit = {},
+    onCloseClick: () -> Unit = {},
     onCheckedInClick: () -> Unit = {},
     viewModel: DailyCheckInViewModel = koinInject(),
 ) {
@@ -106,6 +108,7 @@ fun DailyCheckInScreen(
                     isSubmitting = state.isSubmitting,
                     message = state.message,
                     palette = palette,
+                    onCloseClick = onCloseClick,
                     onHistoryClick = onHistoryClick,
                     onSubmitClick = { viewModel.submit(onSuccess = onCheckedInClick) },
                 )
@@ -140,6 +143,7 @@ private fun DailyCheckInContent(
     isSubmitting: Boolean,
     message: String?,
     palette: XendPalette,
+    onCloseClick: () -> Unit,
     onHistoryClick: () -> Unit,
     onSubmitClick: () -> Unit,
 ) {
@@ -151,7 +155,7 @@ private fun DailyCheckInContent(
         item {
             HeaderSection(
                 palette = palette,
-                onHistoryClick = onHistoryClick,
+                onCloseClick = onCloseClick,
             )
         }
         item {
@@ -608,7 +612,7 @@ private data class ConfettiPiece(
 @Composable
 private fun HeaderSection(
     palette: XendPalette,
-    onHistoryClick: () -> Unit,
+    onCloseClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -640,26 +644,19 @@ private fun HeaderSection(
             )
         }
 
-        Surface(
+        Box(
             modifier = Modifier
                 .size(44.dp)
-                .clickable(onClick = onHistoryClick),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(15.dp),
-            color = Color.White.copy(alpha = 0.82f),
-            border = androidx.compose.foundation.BorderStroke(
-                width = 1.dp,
-                color = palette.primarySoft,
-            ),
-            shadowElevation = 2.dp,
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .clickable(onClick = onCloseClick),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Heroicons.Outline.CalendarDays,
-                    contentDescription = "Check-in history",
-                    tint = palette.primary,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
+            Icon(
+                imageVector = Heroicons.Outline.XMark,
+                contentDescription = "Close daily check-in",
+                tint = palette.ink,
+                modifier = Modifier.size(24.dp),
+            )
         }
     }
 }

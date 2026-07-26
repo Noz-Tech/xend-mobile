@@ -404,7 +404,9 @@ fun AppNavHost(
             AppRouteScaffold(
                 topBar = {},
             ) {
-                DailyCheckInScreen()
+                DailyCheckInScreen(
+                    onCloseClick = ::openMain,
+                )
             }
         }
 
